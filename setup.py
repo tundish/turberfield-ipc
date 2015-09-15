@@ -59,7 +59,14 @@ setup(
             "doc/html/_static/*.png",
             ],
     },
-    install_requires=[],
+    install_requires=[
+        "rson>=0.9",
+    ],
+    extras_require={
+        "docbuild": [
+            "babel<=1.3,>2.0",
+            "sphinxcontrib-seqdiag>=0.8.4",
+        ],
     tests_require=[],
     entry_points={
         "console_scripts": [],
