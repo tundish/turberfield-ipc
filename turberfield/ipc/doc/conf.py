@@ -15,6 +15,7 @@
 
 import sys
 import os
+import os.path
 import shlex
 
 try:
@@ -24,7 +25,7 @@ try:
         "..")
     ))
 except ImportError:
-    sys.path.append(os.path.abspath(os.path.join("..", "..", "..")))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 print(sys.path)
 import turberfield.ipc

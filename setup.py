@@ -21,7 +21,7 @@ except ImportError:
                     "turberfield", "ipc", "__init__.py"),
                     'r').read().split("=")[-1].strip()))
 
-__doc__ = open(os.path.join(os.path.dirname(__file__), "README.txt"),
+__doc__ = open(os.path.join(os.path.dirname(__file__), "README.rst"),
                'r').read()
 
 setup(
@@ -67,6 +67,7 @@ setup(
             "babel<=1.3,>2.0",
             "sphinxcontrib-seqdiag>=0.8.4",
         ],
+    },
     tests_require=[],
     entry_points={
         "console_scripts": [],
