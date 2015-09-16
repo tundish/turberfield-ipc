@@ -18,17 +18,33 @@
 
 
 from collections import namedtuple
+import json
+import pkg_resources
 
 import unittest
 
+import turberfield.ipc.policy
+
+def package_interface(key="turberfield.ipc.role"):
+    for i in pkg_resources.iter_entry_points(key):
+        try:
+            ep = i.resolve()
+        except Exception as e:
+            continue
+        else:
+            yield (i.name, ep)
+
 Path = namedtuple(
     "Path",
-    ["root", "namespace", "user", "service", "application", "flow", "role", "suffix"]
+    ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
 )
 
 class RecordTests(unittest.TestCase):
 
     def test_path(self):
+        udp = turberfield.ipc.policy.POA.UDP(654)
+        tx = turberfield.ipc.policy.Role.TX(500, 50, 50)
+        record = json.dumps(vars(tx), indent=0, ensure_ascii=False, sort_keys=False)
         self.fail(
             Path(
                 ".turberfield",

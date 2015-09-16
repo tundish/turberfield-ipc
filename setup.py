@@ -72,6 +72,14 @@ setup(
     tests_require=[],
     entry_points={
         "console_scripts": [],
+        "turberfield.ipc.poa": [
+            "udp = turberfield.ipc.policy:POA.UDP",
+        ],
+        "turberfield.ipc.role": [
+            "rx = turberfield.ipc.policy:Role.RX",
+            "tx = turberfield.ipc.policy:Role.TX",
+        ]
+
     },
     zip_safe=False
 )
