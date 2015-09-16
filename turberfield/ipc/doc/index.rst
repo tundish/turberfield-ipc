@@ -1,17 +1,15 @@
-.. Turberfield-IPC documentation master file, created by
-   sphinx-quickstart on Tue Sep 15 14:50:14 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+..  Titling
+    ##++::==~~--''``
 
-Welcome to Turberfield-IPC's documentation!
-===========================================
+Turberfield Inter-Process Communication
+:::::::::::::::::::::::::::::::::::::::
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-
+   protocol
 
 Indices and tables
 ==================

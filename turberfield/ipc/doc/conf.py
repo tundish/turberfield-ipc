@@ -16,18 +16,18 @@
 import sys
 import os
 import os.path
+import platform
 import shlex
 
 try:
     import pkg_resources
     sys.path.append(os.path.abspath(os.path.join(
         pkg_resources.resource_filename("turberfield.ipc", ""),
-        "..")
+        "../..")
     ))
 except ImportError:
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
-print(sys.path)
 import turberfield.ipc
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -54,7 +54,10 @@ extensions = [
 ]
 
 # Fontpath for seqdiag (truetype font)
-seqdiag_fontpath = ["/usr/share/fonts/liberation/LiberationSans-Bold.ttf"]
+if "Windows" in platform.system():
+    seqdiag_fontpath = ["C:\\Windows\\Fonts\\OpenSans-Regular.ttf"]
+else:
+    seqdiag_fontpath = ["/usr/share/fonts/liberation/LiberationSans-Bold.ttf"]
 seqdiag_antialias = True
 
 # Add any paths that contain templates here, relative to this directory.

@@ -65,6 +65,7 @@ setup(
     extras_require={
         "docbuild": [
             "babel<=1.3,>2.0",
+            "sphinx-argparse>=0.1.15",
             "sphinxcontrib-seqdiag>=0.8.4",
         ],
     },
