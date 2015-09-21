@@ -18,9 +18,17 @@
 
 import logging
 import os.path
+import pathlib
+import posixpath
+import urllib.parse
 
-
-DFLT_LOCN = os.path.expanduser(os.path.join("~", ".addisonarches"))
+DFLT_LOCN = pathlib.PurePath(
+        os.path.abspath(
+            os.path.expanduser(
+                os.path.join("~", ".turberfield")
+            )
+        )
+    ).as_uri()
 DFLT_PORT = 8080
 
 def add_common_options(parser):
@@ -36,10 +44,15 @@ def add_common_options(parser):
         "--log", default=None, dest="log_path",
         help="Set a file path for log output")
     parser.add_argument(
-        "--output", default=DFLT_LOCN,
-        help="path to output directory [{}]".format(DFLT_LOCN))
+        "--connect", default=DFLT_LOCN,
+        help="Connection string to IPC framework [{}]".format(DFLT_LOCN))
     return parser
 
+def add_async_options(parser):
+    parser.add_argument(
+        "--debug", action="store_true", default=False,
+        help="Print wire-level messages for debugging")
+    return parser
 
 def add_web_options(parser):
     parser.add_argument(
@@ -51,7 +64,4 @@ def add_web_options(parser):
     parser.add_argument(
         "--user", required=False,
         help="Specify the user login on the host")
-    parser.add_argument(
-        "--debug", action="store_true", default=False,
-        help="Print wire-level messages for debugging")
     return parser

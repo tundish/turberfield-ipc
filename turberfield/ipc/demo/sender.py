@@ -18,145 +18,46 @@
 
 import argparse
 import asyncio
-from collections import OrderedDict
-import concurrent.futures
+import getpass
 import json
 import logging
 import os
+import pathlib
 import sys
 import time
+import urllib.parse
+import warnings
 
-import bottle
-from bottle import Bottle
 import pkg_resources
 
-from turberfield.utils.expert import TypesEncoder
+from turberfield.ipc import __version__
+from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.fsdb import Resource
 
-from addisonarches import __version__
-from addisonarches.cli import add_common_options
-from addisonarches.cli import add_web_options
-import addisonarches.game
-from addisonarches.utils import send
+APP_NAME = "turberfield.ipc.demo.sender"
 
 __doc__ = """
-Runs the web interface for Turberfield.
-"""
+Runs a '{0}' process.
+""".format(APP_NAME)
 
 
-bottle.TEMPLATE_PATH.append(
-    pkg_resources.resource_filename("addisonarches.web", "templates")
-)
+def get_DIF(connect):
+    bits = urllib.parse.urlparse(connect)
+    if bits.scheme != "file":
+        warnings.warn("Only a file-based POA cache is available")
+        return None
 
-app = Bottle()
+    path = pathlib.Path(bits.path)
+    user = getpass.getuser()
+    return Resource(path, "turberfield", user, "demo", APP_NAME, None, None, None)
 
-def authenticated_userid(request):
-    return "someone@somewhere.net"
-
-@app.route("/", "GET")
-def home_get():
-    log = logging.getLogger("addisonarches.web.home")
-    userId = authenticated_userid(bottle.request)
-    log.info(userId)
-    args = app.config.get("args")
-    send(args)
-    path = os.path.join(
-        app.config["args"].output, "player.rson"
+def got_DIF(args):
+    query = Resource(
     )
-    ts = time.time()
-    actor = None
-    page = {
-        "info": {
-            "actor": actor,
-            "interval": 200,
-            "refresh": None,
-            "time": "{:.1f}".format(ts),
-            "title": "Turberfield {}".format(__version__),
-            "version": __version__
-        },
-        "nav": [],
-        "items": [],
-        "options": [],
-    }
-    try:
-        pass
-    except Exception as e:
-        log.exception(e)
-    finally:
-        return json.dumps(
-            page, cls=TypesEncoder, indent=4
-        )
-
-@app.route("/titles", "GET")
-@bottle.view("titles")
-def titles_get():
-    log = logging.getLogger("addisonarches.web.titles")
-
-    items = []
-    return {
-        "info": {
-            "args": app.config.get("args"),
-            "debug": bottle.debug,
-            "interval": 200,
-            "time": "{:.1f}".format(time.time()),
-            "title": "Turberfield {}".format(__version__),
-            "version": __version__
-        },
-        "items": OrderedDict([(str(id(i)), i) for i in items]),
-        
-    }
-
-@app.route("/audio/<filepath:path>")
-def serve_audio(filepath):
-    log = logging.getLogger("addisonarches.web.serve_audio")
-    log.debug(filepath)
-    locn = pkg_resources.resource_filename(
-        "addisonarches.web", "static/audio"
-    )
-    return bottle.static_file(filepath, root=locn)
-
-
-@app.route("/css/<filepath:path>")
-def serve_css(filepath):
-    log = logging.getLogger("addisonarches.web.serve_css")
-    log.debug(filepath)
-    locn = pkg_resources.resource_filename(
-        "addisonarches.web", "static/css"
-    )
-    return bottle.static_file(filepath, root=locn)
-
-
-@app.route("/data/<filename>")
-def serve_data(filename):
-    bottle.request.environ["HTTP_IF_MODIFIED_SINCE"] = None
-    locn = app.config["args"].output
-    response = bottle.static_file(filename, root=locn)
-    response.expires = os.path.getmtime(locn)
-    response.set_header("Cache-control", "max-age=0")
-    return response
-
-
-@app.route("/img/<filepath:path>")
-def serve_img(filepath):
-    log = logging.getLogger("addisonarches.web.serve_img")
-    log.debug(filepath)
-    locn = pkg_resources.resource_filename(
-        "addisonarches.web", "static/img"
-    )
-    return bottle.static_file(filepath, root=locn)
-
-
-@app.route("/js/<filepath:path>")
-def serve_js(filepath):
-    log = logging.getLogger("addisonarches.web.serve_js")
-    log.debug(filepath)
-    locn = pkg_resources.resource_filename(
-        "addisonarches.web", "static/js"
-    )
-    return bottle.static_file(filepath, root=locn)
-
+    return None
 
 def main(args):
-    log = logging.getLogger("addisonarches.web")
+    log = logging.getLogger(APP_NAME)
     log.setLevel(args.log_level)
 
     formatter = logging.Formatter(
@@ -175,16 +76,8 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    bottle.debug(True)
-    bottle.TEMPLATES.clear()
-    log.debug(bottle.TEMPLATE_PATH)
-
-    log.info("Starting local server...")
-    app.config.update({
-        "args": args,
-    })
-    bottle.run(app, host=args.host, port=args.port)
-
+    dif = get_DIF(args.connect)
+    log.info(dif)
 
 def run():
     p = argparse.ArgumentParser(
@@ -192,7 +85,6 @@ def run():
         fromfile_prefix_chars="@"
     )
     p = add_common_options(p)
-    p = add_web_options(p)
     args = p.parse_args()
     if args.version:
         sys.stderr.write(__version__ + "\n")

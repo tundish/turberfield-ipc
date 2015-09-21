@@ -26,81 +26,9 @@ import tempfile
 
 import unittest
 
+from turberfield.ipc.flow import Flow
+from turberfield.ipc.fsdb import Resource
 import turberfield.ipc.policy
-
-def package_interface(key="turberfield.ipc.role"):
-    for i in pkg_resources.iter_entry_points(key):
-        try:
-            ep = i.resolve()
-        except Exception as e:
-            continue
-        else:
-            yield (i.name, ep)
-
-Resource = namedtuple(
-    "Resource",
-    ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
-)
-
-class Flow:
-
-    @staticmethod
-    def create(path:Resource, prefix="flow_", suffix=""):
-        if all(path[:4]) and not any(path[5:]):
-                parent = os.path.join(*path[:5])
-                os.makedirs(parent, exist_ok=True)
-                flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
-                return path._replace(flow=os.path.basename(flow))
-        else:
-            return path
-
-    @staticmethod
-    def invite(flow:Resource, application:Resource):
-        pass
-
-    @staticmethod
-    def get_invites(application:Resource):
-        """
-        Return all open invites.
-        """
-        pass
-
-    @staticmethod
-    def get_applications(flow:Resource):
-        """
-        Return all applications party to a flow.
-        """
-        pass
-
-    @staticmethod
-    def get_flows(application:Resource):
-        """
-        Return all flows associated with the application.
-        """
-        pass
-
-    @staticmethod
-    def accept(invite:Resource):
-        """
-        Accepts an invite.
-        """
-        pass
-
-    @staticmethod
-    def refuse(invite:Resource):
-        """
-        Refuses an invite.
-        """
-        pass
-
-def recent_slot(path:Resource):
-    slots = [i for i in os.listdir(os.path.join(path.root, path.home))
-             if os.path.isdir(os.path.join(path.root, path.home, i))]
-    stats = [(os.path.getmtime(os.path.join(path.root, path.home, fP)), fP)
-             for fP in slots]
-    stats.sort(key=operator.itemgetter(0), reverse=True)
-    return Persistent.Resource(
-        path.root, path.home, next((i[1] for i in stats), None), path.file)
 
 class FlowTests(unittest.TestCase):
 
