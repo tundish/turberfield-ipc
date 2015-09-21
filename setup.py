@@ -41,6 +41,7 @@ setup(
     namespace_packages=["turberfield"],
     packages=[
         "turberfield.ipc",
+        "turberfield.ipc.demo",
         "turberfield.ipc.test",
     ],
     package_data={
