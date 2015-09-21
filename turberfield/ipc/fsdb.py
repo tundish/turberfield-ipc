@@ -40,7 +40,7 @@ def token(connect, appName):
     print(bits)
     path = pathlib.Path(bits.path)
     user = getpass.getuser()
-    return Resource(str(path), "turberfield", user, "demo", appName, None, None, None)
+    return Resource(str(path).lstrip(path.root), "turberfield", user, "demo", appName, None, None, None)
 
 @Flow.create.register(Resource)
 def create_from_resource(path:Resource, prefix="flow_", suffix=""):
