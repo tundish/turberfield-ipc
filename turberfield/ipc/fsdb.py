@@ -17,8 +17,12 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections import namedtuple
+import getpass
 import os.path
+import pathlib
 import tempfile
+import urllib.parse
+import warnings
 
 from turberfield.ipc.flow import Flow
 
@@ -26,6 +30,17 @@ Resource = namedtuple(
     "Resource",
     ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
 )
+
+def token(connect, appName):
+    bits = urllib.parse.urlparse(connect)
+    if bits.scheme != "file":
+        warnings.warn("Only a file-based POA cache is available")
+        return None
+
+    print(bits)
+    path = pathlib.Path(bits.path)
+    user = getpass.getuser()
+    return Resource(str(path), "turberfield", user, "demo", appName, None, None, None)
 
 @Flow.create.register(Resource)
 def create_from_resource(path:Resource, prefix="flow_", suffix=""):

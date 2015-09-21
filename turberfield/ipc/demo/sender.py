@@ -18,20 +18,18 @@
 
 import argparse
 import asyncio
-import getpass
 import json
 import logging
 import os
-import pathlib
 import sys
 import time
-import urllib.parse
-import warnings
 
 import pkg_resources
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.flow import Flow
+from turberfield.ipc.fsdb import token
 from turberfield.ipc.fsdb import Resource
 
 APP_NAME = "turberfield.ipc.demo.sender"
@@ -40,21 +38,6 @@ __doc__ = """
 Runs a '{0}' process.
 """.format(APP_NAME)
 
-
-def get_DIF(connect):
-    bits = urllib.parse.urlparse(connect)
-    if bits.scheme != "file":
-        warnings.warn("Only a file-based POA cache is available")
-        return None
-
-    path = pathlib.Path(bits.path)
-    user = getpass.getuser()
-    return Resource(path, "turberfield", user, "demo", APP_NAME, None, None, None)
-
-def got_DIF(args):
-    query = Resource(
-    )
-    return None
 
 def main(args):
     log = logging.getLogger(APP_NAME)
@@ -76,8 +59,9 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    dif = get_DIF(args.connect)
-    log.info(dif)
+    dif = token(args.connect, APP_NAME)
+    flow = Flow.create(dif)
+    log.info(flow)
 
 def run():
     p = argparse.ArgumentParser(
