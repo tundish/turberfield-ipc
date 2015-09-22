@@ -20,6 +20,8 @@
 from collections import namedtuple
 from functools import singledispatch
 import os.path
+import warnings
+
 import pkg_resources
 
 
@@ -34,9 +36,16 @@ def package_interface(key="turberfield.ipc.role"):
 
 class Flow:
 
+    @staticmethod
     @singledispatch
     def create(obj, **kwargs):
         warnings.warn("No create function registered for {}".format(type(obj)))
+        return None
+
+    @staticmethod
+    @singledispatch
+    def find(query, **kwargs):
+        warnings.warn("No find function registered for {}".format(type(query)))
         return None
 
     @staticmethod

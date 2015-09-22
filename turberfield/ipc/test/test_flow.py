@@ -23,12 +23,14 @@ import json
 import os.path
 import pkg_resources
 import tempfile
-
 import unittest
+import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import Resource
+from turberfield.ipc.fsdb import token
 import turberfield.ipc.policy
+
 
 class FlowTests(unittest.TestCase):
 
@@ -40,6 +42,23 @@ class FlowTests(unittest.TestCase):
             self.root.cleanup()
         self.assertFalse(os.path.isdir(self.root.name))
         self.root = None
+
+    def test_token_file_db(self):
+        app = "addisonarches.web"
+        rv = token("file://{}".format(self.root.name), app)
+        self.assertIsInstance(rv, Resource)
+        self.assertEqual(self.root.name, rv.root)
+        self.assertEqual(app, rv.application)
+        self.assertTrue(os.path.isdir(os.path.join(*rv[0:5])))
+
+    def test_token_other_db(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            rv = token("http://{}".format(self.root.name), "addisonarches.web")
+            self.assertIs(None, rv)
+            self.assertTrue(
+                issubclass(w[-1].category, UserWarning))
+            self.assertIn("file-based", str(w[-1].message))
 
     def test_create(self):
         udp = turberfield.ipc.policy.POA.UDP(654)
@@ -55,6 +74,17 @@ class FlowTests(unittest.TestCase):
         self.assertTrue(rv.flow)
         self.assertTrue(os.path.isdir(os.path.join(*rv[0:5])))
 
+    def test_find_flow(self):
+        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        self.assertIs(None, tok.flow)
+        print(Flow.find(tok))
+        
+    def test_find_application(self):
+        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        self.assertIs(None, tok.flow)
+        results = Flow.find(tok, application="addisonarches.game")
+        print(results)
+        
     def test_attach(self):
         udp = turberfield.ipc.policy.POA.UDP(654)
         tx = turberfield.ipc.policy.Role.TX(500, 50, 50)
