@@ -48,5 +48,16 @@ class Role:
         Advertised through turberfield.ipc.role entry point.
 
     """
-    RX = namedtuple("RX", ["tMaxPdu", "tMaxAck", "tMaxRtx"])
-    TX = namedtuple("TX", ["tMaxPdu", "tMaxAck", "tMaxRtx"])
+    class RX(SavesToJSON):
+
+        def __init__(self, tMaxPdu=5.0, tMaxAck=0.5, tMaxRtx=11.0):
+            self.tMaxPdu = tMaxPdu
+            self.tMaxAck = tMaxAck
+            self.tMaxRtx = tMaxRtx
+
+    class TX(SavesToJSON):
+
+        def __init__(self, tMaxPdu=5.0, tMaxAck=0.5, tMaxRtx=11.0):
+            self.tMaxPdu = tMaxPdu
+            self.tMaxAck = tMaxAck
+            self.tMaxRtx = tMaxRtx

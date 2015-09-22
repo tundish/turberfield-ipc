@@ -37,10 +37,9 @@ Resource = namedtuple(
 def token(connect:str, appName:str):
     bits = urllib.parse.urlparse(connect)
     if bits.scheme != "file":
-        warnings.warn("Only a file-based POA cache is available")
+        warnings.warn("Only a file-based DIF cache is available")
         return None
 
-    print(bits)
     path = pathlib.Path(os.sep.join((bits.netloc, bits.path)))
     user = getpass.getuser()
     rv = Resource(
