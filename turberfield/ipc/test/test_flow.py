@@ -70,7 +70,7 @@ class FlowTests(unittest.TestCase):
                 "test", "addisonarches-web",
                 None, None, None
             ),
-            policy=None,
+            poa=None,
         )
         self.assertTrue(rv.flow)
         self.assertTrue(os.path.isdir(os.path.join(*rv[0:5])))
@@ -80,7 +80,7 @@ class FlowTests(unittest.TestCase):
         self.assertIs(None, tok.flow)
         rv = Flow.find(tok)
         self.assertFalse(rv)
-        rv = Flow.create(tok, policy=None)
+        rv = Flow.create(tok, poa=None)
         self.assertTrue(rv.flow)
 
         results = Flow.find(tok)
@@ -92,9 +92,12 @@ class FlowTests(unittest.TestCase):
         rv = Flow.find(tok)
         self.assertFalse(rv)
 
-        rv = Flow.create(tok, policy="udp")
+        rv = Flow.create(tok, poa="udp")
         self.assertEqual("udp", rv.policy)
-        self.assertEqual("json", rv.suffix)
+        self.assertEqual(".json", rv.suffix)
+
+        udp = Flow.inspect(rv)
+        self.assertIsInstance(udp.port, int)
         
     def test_create_policy_unregistered(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
@@ -102,14 +105,14 @@ class FlowTests(unittest.TestCase):
         rv = Flow.find(tok)
         self.assertFalse(rv)
 
-        rv = Flow.create(tok, policy="ftp")
+        rv = Flow.create(tok, poa="ftp")
         self.assertIs(None, rv.policy)
         
     def test_find_application(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
         results = Flow.find(tok, application="addisonarches.game")
-        print(results)
+        self.assertFalse(results)
         
     def tost_attach(self):
         udp = turberfield.ipc.policy.POA.UDP(654)

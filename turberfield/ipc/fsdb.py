@@ -18,6 +18,7 @@
 
 from collections import namedtuple
 import getpass
+import json
 import operator
 import os.path
 import pathlib
@@ -26,6 +27,7 @@ import urllib.parse
 import warnings
 
 from turberfield.ipc.flow import Flow
+from turberfield.ipc.flow import gather_from_installation
 
 Resource = namedtuple(
     "Resource",
@@ -57,11 +59,24 @@ def token(connect:str, appName:str):
     return rv
 
 @Flow.create.register(Resource)
-def create_from_resource(path:Resource, policy, prefix="flow_", suffix=""):
+def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
     if all(path[:5]) and not any(path[5:]):
+        # Create or revive a flow
+        # TODO: revive
         parent = os.path.join(*path[:5])
         flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
-        return path._replace(flow=os.path.basename(flow))
+        path = path._replace(flow=os.path.basename(flow))
+
+    poas = dict(gather_from_installation("turberfield.ipc.poa"))
+    try:
+        typ = poas[poa]
+        obj = typ()
+        path = path._replace(policy=poa, suffix=".json")
+        with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
+            record.write(obj.__json__())
+
+    except KeyError:
+        return path
     else:
         return path
 
@@ -70,3 +85,18 @@ def find_by_resource(context:Resource, application=None, policy=None, role=None)
     scan = os.scandir(os.path.join(*[i for i in context if i is not None]))
     latest = sorted(scan, key=operator.methodcaller("stat"))
     return list(scan)
+
+@Flow.inspect.register(Resource)
+def inspect_by_resource(context:Resource):
+    factories = {
+        **dict(gather_from_installation("turberfield.ipc.poa")),
+        **dict(gather_from_installation("turberfield.ipc.role")),
+    }
+    with open(os.path.join(*context[:-1]) + context.suffix, 'r') as record:
+        try:
+            typ = factories[context.policy]
+            obj = typ.from_json(record.read())
+        except (AttributeError, KeyError) as e:
+            return None
+        else:
+            return obj

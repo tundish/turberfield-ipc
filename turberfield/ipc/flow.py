@@ -24,8 +24,8 @@ import warnings
 
 import pkg_resources
 
-
-def package_interface(key="turberfield.ipc.role"):
+# TODO: resite
+def gather_from_installation(key):
     for i in pkg_resources.iter_entry_points(key):
         try:
             ep = i.resolve()
@@ -46,6 +46,12 @@ class Flow:
     @singledispatch
     def find(query, *args, **kwargs):
         warnings.warn("No find function registered for {}".format(type(query)))
+        return None
+
+    @staticmethod
+    @singledispatch
+    def inspect(obj, *args, **kwargs):
+        warnings.warn("No find function registered for {}".format(type(obj)))
         return None
 
 def recent_slot(path):
