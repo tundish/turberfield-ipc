@@ -38,54 +38,15 @@ class Flow:
 
     @staticmethod
     @singledispatch
-    def create(obj, **kwargs):
+    def create(obj, *args, **kwargs):
         warnings.warn("No create function registered for {}".format(type(obj)))
         return None
 
     @staticmethod
     @singledispatch
-    def find(query, **kwargs):
+    def find(query, *args, **kwargs):
         warnings.warn("No find function registered for {}".format(type(query)))
         return None
-
-    @staticmethod
-    def invite(flow, application):
-        pass
-
-    @staticmethod
-    def get_invites(application):
-        """
-        Return all open invites.
-        """
-        pass
-
-    @staticmethod
-    def get_applications(flow):
-        """
-        Return all applications party to a flow.
-        """
-        pass
-
-    @staticmethod
-    def get_flows(application):
-        """
-        Return all flows associated with the application.
-        """
-        pass
-
-    @staticmethod
-    def accept(invite):
-        """
-        Accepts an invite.
-        """
-        pass
-
-    @staticmethod
-    def refuse(invite):
-        """
-        Refuses an invite.
-        """
-        pass
 
 def recent_slot(path):
     slots = [i for i in os.listdir(os.path.join(path.root, path.home))

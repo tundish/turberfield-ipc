@@ -18,6 +18,7 @@
 
 from collections import namedtuple
 import getpass
+import operator
 import os.path
 import pathlib
 import tempfile
@@ -56,7 +57,7 @@ def token(connect:str, appName:str):
     return rv
 
 @Flow.create.register(Resource)
-def create_from_resource(path:Resource, prefix="flow_", suffix=""):
+def create_from_resource(path:Resource, policy, prefix="flow_", suffix=""):
     if all(path[:5]) and not any(path[5:]):
         parent = os.path.join(*path[:5])
         flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
@@ -65,16 +66,7 @@ def create_from_resource(path:Resource, prefix="flow_", suffix=""):
         return path
 
 @Flow.find.register(Resource)
-def find_by_resource(path:Resource, application=None, policy=None, role=None):
-    scan = os.scandir(os.path.join(*[i for i in path if i is not None]))
+def find_by_resource(context:Resource, application=None, policy=None, role=None):
+    scan = os.scandir(os.path.join(*[i for i in context if i is not None]))
+    latest = sorted(scan, key=operator.methodcaller("stat"))
     return list(scan)
-
-def get_DIF(connect):
-    bits = urllib.parse.urlparse(connect)
-    if bits.scheme != "file":
-        warnings.warn("Only a file-based POA cache is available")
-        return None
-
-    path = pathlib.Path(bits.path)
-    user = getpass.getuser()
-    return Resource(path, "turberfield", user, "demo", APP_NAME, None, None, None)
