@@ -60,7 +60,7 @@ class FlowTests(unittest.TestCase):
                 issubclass(w[-1].category, UserWarning))
             self.assertIn("file-based", str(w[-1].message))
 
-    def test_create(self):
+    def tost_create(self):
         udp = turberfield.ipc.policy.POA.UDP(654)
         tx = turberfield.ipc.policy.Role.TX(500, 50, 50)
         record = json.dumps(vars(tx), indent=0, ensure_ascii=False, sort_keys=False)

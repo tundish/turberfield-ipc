@@ -40,7 +40,8 @@ def token(connect:str, appName:str):
         warnings.warn("Only a file-based POA cache is available")
         return None
 
-    path = pathlib.Path(bits.netloc)
+    print(bits)
+    path = pathlib.Path(os.sep.join((bits.netloc, bits.path)))
     user = getpass.getuser()
     rv = Resource(
         root=str(path).lstrip(path.root),
