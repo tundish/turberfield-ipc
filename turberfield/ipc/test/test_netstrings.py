@@ -17,49 +17,10 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
-
 import unittest
 
-__doc__ = """
-_netstring definition: http://cr.yp.to/proto/netstrings.txt
-"""
-
-def dumpb(data, encoding="utf-8"):
-    payload = data.encode(encoding=encoding)
-    return ""
-
-def loadb(encoding="utf-8"):
-    buf = bytearray()
-    span = None
-    rv = None
-    while True:
-        while span is None:
-            colon = buf.find(b":")
-
-            if colon != -1:
-                # work backwards from colon over length field
-                index = colon - 1
-                while index >= 0 and 0x30 <= buf[index] <= 0x39:
-                    index -= 1
-
-                span = int(buf[index + 1:colon].decode("ascii"))
-                del buf[0:colon + 1]
-            else:
-                data = yield rv
-                buf.extend(data)
-
-        while len(buf) < span + 1:
-            data = yield None
-            buf.extend(data)
-        else:
-            if buf[span] != 44: #  b','
-                warnings.warn("Framing error.")
-                rv = None
-            else:
-                rv = buf[0:span].decode(encoding=encoding)
-                del buf[0:span + 1]
-
-            span = None
+from turberfield.ipc.netstrings import dumpb
+from turberfield.ipc.netstrings import loadb
 
 
 class NetstringTests(unittest.TestCase):
@@ -113,9 +74,6 @@ class NetstringTests(unittest.TestCase):
         self.assertEqual("", msg)
 
     def test_loadb_message_headnoise(self):
-        """
-
-        """
         packet = bytes([
             0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21,
             0x30,
