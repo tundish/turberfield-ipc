@@ -24,6 +24,10 @@ __doc__ = """
 _netstring definition: http://cr.yp.to/proto/netstrings.txt
 """
 
+def dumpb(data, encoding="utf-8"):
+    payload = data.encode(encoding=encoding)
+    return ""
+
 def loadb(encoding="utf-8"):
     buf = bytearray()
     span = None
@@ -69,6 +73,27 @@ class NetstringTests(unittest.TestCase):
             [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21])
         self.assertEqual(12, len(raw))
         self.assertEqual("hello world!", raw.decode("ascii"))
+
+    def test_dumpb_empty_message(self):
+        """
+        The empty string is encoded as "0:,".
+
+        """
+        packet = dumpb("")
+        self.assertEqual(bytes([0x30, 0x3a, 0x2c]), packet)
+
+    def test_dumpb_full_message(self):
+        """
+        The string "hello world!" is encoded as <31 32 3a 68
+        65 6c 6c 6f 20 77 6f 72 6c 64 21 2c>, i.e., "12:hello world!,".
+        """
+        packet = dumpb("hello world!")
+        self.assertEqual(bytes([
+            0x31, 0x32,
+            0x3a,
+            0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+            0x2c
+        ]), packet)
 
     def test_loadb_empty_message(self):
         """
