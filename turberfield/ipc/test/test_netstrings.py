@@ -27,30 +27,36 @@ _netstring definition: http://cr.yp.to/proto/netstrings.txt
 def loadb(encoding="utf-8"):
     buf = bytearray()
     span = None
-    while span is None:
-        data = yield None
-        buf.extend(data)
-        index = buf.find(b":")
+    rv = None
+    while True:
+        while span is None:
+            colon = buf.find(b":")
 
-        if index != -1:
-            span = int(buf[0:index].decode("ascii"))
-            del buf[0:index + 1]
+            if colon != -1:
+                # work backwards from colon over length field
+                index = colon - 1
+                while index >= 0 and 0x30 <= buf[index] <= 0x39:
+                    index -= 1
 
-    while span > len(buf):
-        data = yield None
-        buf.extend(data)
-    else:
-        if buf[span] != 44: #  b':'
-            warnings.warn("Framing error.")
+                span = int(buf[index + 1:colon].decode("ascii"))
+                del buf[0:colon + 1]
+            else:
+                data = yield rv
+                buf.extend(data)
+
+        while len(buf) < span + 1:
+            data = yield None
+            buf.extend(data)
         else:
-            rv = buf[0:span].decode(encoding=encoding)
-            del buf[0:span + 1]
-            yield rv
+            if buf[span] != 44: #  b','
+                warnings.warn("Framing error.")
+                rv = None
+            else:
+                rv = buf[0:span].decode(encoding=encoding)
+                del buf[0:span + 1]
 
-        span = None
-        
-    
-        
+            span = None
+
 
 class NetstringTests(unittest.TestCase):
 
@@ -62,15 +68,6 @@ class NetstringTests(unittest.TestCase):
         raw = bytes(
             [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21])
         self.assertEqual(12, len(raw))
-        self.assertEqual("hello world!", raw.decode("ascii"))
-
-    def test_dumpb(self):
-        """
-        <68 65 6c 6c 6f 20 77 6f 72 6c 64 21> is a string of length 12.
-        It is the same as the string "hello world!
-        """
-        raw = bytes(
-            [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21])
         self.assertEqual("hello world!", raw.decode("ascii"))
 
     def test_loadb_empty_message(self):
@@ -107,18 +104,49 @@ class NetstringTests(unittest.TestCase):
         msg = decoder.send(packet)
         self.assertEqual("", msg)
 
+    def test_loadb_message_tailnoise(self):
+        """
+
+        """
+        packet = bytes([
+            0x30,
+            0x3a,
+            0x2c,
+            0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+        ])
+        decoder = loadb()
+        msg = decoder.send(None)
+        self.assertIs(None, msg)
+
+        msg = decoder.send(packet)
+        self.assertEqual("", msg)
+
+    def test_loadb_badmessage(self):
+        packet = bytes([
+            0x30,
+            0x3a,
+            0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+            0x2c,
+        ])
+        decoder = loadb()
+        msg = decoder.send(None)
+        self.assertIs(None, msg)
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            msg = decoder.send(packet)
+            self.assertIs(None, msg)
+            self.assertTrue(
+                issubclass(w[-1].category, UserWarning))
+            self.assertIn("Framing error", str(w[-1].message))
+
+        msg = decoder.send(bytes([0x30, 0x3a, 0x2c]))
+        self.assertEqual("", msg)
+
     def test_loadb_full_message(self):
         """
-        Any string of 8-bit bytes may be encoded as [len]":"[string]",".
-        Here [string] is the string and [len] is a nonempty sequence of ASCII
-        digits giving the length of [string] in decimal. The ASCII digits are
-        <30> for 0, <31> for 1, and so on up through <39> for 9. Extra zeros
-        at the front of [len] are prohibited: [len] begins with <30> exactly
-        when [string] is empty.
-
-        For example, the string "hello world!" is encoded as <31 32 3a 68
-        65 6c 6c 6f 20 77 6f 72 6c 64 21 2c>, i.e., "12:hello world!,". The
-        empty string is encoded as "0:,".
+        The string "hello world!" is encoded as <31 32 3a 68
+        65 6c 6c 6f 20 77 6f 72 6c 64 21 2c>, i.e., "12:hello world!,".
         """
         packet = bytes([
             0x31, 0x32,
@@ -131,4 +159,23 @@ class NetstringTests(unittest.TestCase):
         self.assertIs(None, msg)
 
         msg = decoder.send(packet)
+        self.assertEqual("hello world!", msg)
+
+    def test_loadb_bytewise_message(self):
+        """
+        The string "hello world!" is encoded as <31 32 3a 68
+        65 6c 6c 6f 20 77 6f 72 6c 64 21 2c>, i.e., "12:hello world!,".
+        """
+        packet = bytes([
+            0x31, 0x32,
+            0x3a,
+            0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+            0x2c
+        ])
+        decoder = loadb()
+        msg = decoder.send(None)
+        self.assertIs(None, msg)
+
+        for symbol in packet:
+            msg = decoder.send([symbol])
         self.assertEqual("hello world!", msg)
