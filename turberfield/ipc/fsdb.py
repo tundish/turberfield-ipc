@@ -22,6 +22,7 @@ import json
 import operator
 import os.path
 import pathlib
+import platform
 import tempfile
 import urllib.parse
 import warnings
@@ -40,10 +41,15 @@ def token(connect:str, appName:str):
         warnings.warn("Only a file-based DIF cache is available")
         return None
 
-    path = pathlib.Path(os.sep.join((bits.netloc, bits.path)))
+    path = pathlib.Path(bits.netloc, bits.path)
+    if platform.system() == "Windows":
+        path = str(path).lstrip(path.root)
+    else:
+        path = str(path)
+
     user = getpass.getuser()
     rv = Resource(
-        root=str(path).lstrip(path.root),
+        root=path,
         namespace="turberfield",
         user=user,
         service="demo",

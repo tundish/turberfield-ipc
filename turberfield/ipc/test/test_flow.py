@@ -26,6 +26,7 @@ import tempfile
 import unittest
 import warnings
 
+from turberfield.ipc.flow import gather_from_installation
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import Resource
 from turberfield.ipc.fsdb import token
@@ -80,6 +81,7 @@ class FlowTests(unittest.TestCase):
         self.assertIs(None, tok.flow)
         rv = Flow.find(tok)
         self.assertFalse(rv)
+
         rv = Flow.create(tok, poa=None)
         self.assertTrue(rv.flow)
 
@@ -91,6 +93,11 @@ class FlowTests(unittest.TestCase):
         self.assertIs(None, tok.flow)
         rv = Flow.find(tok)
         self.assertFalse(rv)
+
+        self.assertTrue(
+            list(gather_from_installation("turberfield.ipc.poa")),
+            "No declared POA endpoints; install package for testing."
+        )
 
         rv = Flow.create(tok, poa="udp")
         self.assertEqual("udp", rv.policy)
