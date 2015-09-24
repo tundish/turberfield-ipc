@@ -21,6 +21,7 @@ import json
 import random
 
 from turberfield.ipc.flow import Flow
+from turberfield.ipc.flow import Pooled
 
 # TODO: resite
 class SavesToJSON:
@@ -37,12 +38,16 @@ class POA:
         Advertised through turberfield.ipc.poa entry point.
 
     """
-    class UDP(SavesToJSON):
+    class UDP(Pooled, SavesToJSON):
 
-        def __init__(self, addr="127.0.0.1", port=None, pool=slice(49152, 65535), taken=[]):
+        @classmethod
+        def allocate(cls, others=[], pool=slice(49152, 65535)):
+            print(others)
+            return cls(random.randint(pool.start, pool.stop))
+
+        def __init__(self, port, addr="127.0.0.1"):
+            self.port = port
             self.addr = addr
-            # TODO: Taken is a list of existing objects
-            self.port = port or random.randint(pool.start, pool.stop)
 
 class Role:
     """

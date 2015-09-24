@@ -28,6 +28,7 @@ import urllib.parse
 import warnings
 
 from turberfield.ipc.flow import Flow
+from turberfield.ipc.flow import Pooled
 from turberfield.ipc.flow import gather_from_installation
 
 Resource = namedtuple(
@@ -76,7 +77,11 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
     poas = dict(gather_from_installation("turberfield.ipc.poa"))
     try:
         typ = poas[poa]
-        obj = typ()
+        if issubclass(typ, Pooled):
+            others = [Flow.inspect(i) for i in Flow.find(path, poa=poa)]
+            obj = typ.allocate(others=others)
+        else:
+            obj = typ()
         path = path._replace(policy=poa, suffix=".json")
         with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
             record.write(obj.__json__())

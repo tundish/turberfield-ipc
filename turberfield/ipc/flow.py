@@ -34,6 +34,12 @@ def gather_from_installation(key):
         else:
             yield (i.name, ep)
 
+class Pooled:
+
+    @classmethod
+    def allocate(cls, others=[]):
+        raise NotImplementedError
+
 class Flow:
 
     @staticmethod
