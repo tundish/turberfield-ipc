@@ -16,7 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
+import argparse
 import asyncio
+import logging
+import sys
+
+from turberfield.ipc import __version__
+from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.flow import Flow
+from turberfield.ipc.fsdb import token
 
 APP_NAME = "turberfield.ipc.demo.receiver"
 
@@ -82,15 +90,15 @@ def main(args):
         lambda: EchoServerProtocol(queue, loop),
         local_addr=(udp.addr, udp.port))
     print("Starting UDP server")
-    transport, protocol = loop.run_until_complete(connect)
-    task = loop.create_task(protocol())
+    #transport, protocol = loop.run_until_complete(connect)
+    #task = loop.create_task(protocol())
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         pass
 
-    transport.close()
+    #transport.close()
     loop.close()
 
 def run():

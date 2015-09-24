@@ -82,7 +82,8 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
             record.write(obj.__json__())
 
     except KeyError:
-        return path
+        warnings.warn("No policy found for '{}'.".format(poa))
+        return None
     else:
         return path
 
@@ -99,18 +100,19 @@ def find_by_resource(context:Resource, application=None, poa=None, role=None):
         context.suffix or ".json"
     )
     p = pathlib.Path(*query[0:5])
-    return [
-        Resource(
+    return (r for t, r in sorted((
+        (i.stat().st_mtime_ns, Resource(
             context.root,
             context.namespace,
             context.user,
             context.service,
             *i.parts[-3:-1],
             os.path.splitext(i.name)[0],
-            suffix=i.suffix
+            suffix=i.suffix)
         )
-        for i in p.glob(os.path.join(query.flow, query.policy + query.suffix))
-    ]
+        for i in p.glob(os.path.join(query.flow, query.policy + query.suffix))),
+        reverse=True)
+    )
 
 @Flow.inspect.register(Resource)
 def inspect_by_resource(context:Resource):

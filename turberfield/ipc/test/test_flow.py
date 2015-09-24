@@ -79,19 +79,21 @@ class FlowTests(unittest.TestCase):
     def test_find_flow_empty(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
-        rv = Flow.find(tok)
+        rv = list(Flow.find(tok))
         self.assertFalse(rv)
 
-        rv = Flow.create(tok, poa=None)
-        self.assertTrue(rv.flow)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore")
+            rv = Flow.create(tok, poa=None)
+            self.assertIs(None, rv)
 
-        results = Flow.find(tok)
+        results = list(Flow.find(tok))
         self.assertFalse(results)
         
     def test_create_policy(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
-        rv = Flow.find(tok)
+        rv = list(Flow.find(tok))
         self.assertFalse(rv)
 
         self.assertTrue(
@@ -109,16 +111,21 @@ class FlowTests(unittest.TestCase):
     def test_create_policy_unregistered(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
-        rv = Flow.find(tok)
-        self.assertFalse(rv)
+        rv = next(Flow.find(tok), None)
+        self.assertIs(None, rv)
 
-        rv = Flow.create(tok, poa="ftp")
-        self.assertIs(None, rv.policy)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            rv = Flow.create(tok, poa="ftp")
+            self.assertIs(None, rv)
+            self.assertTrue(
+                issubclass(w[-1].category, UserWarning))
+            self.assertIn("No policy", str(w[-1].message))
         
     def test_find_application(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
-        results = Flow.find(tok, application="addisonarches.game")
+        results = list(Flow.find(tok, application="addisonarches.game"))
         self.assertFalse(results)
         
     def tost_attach(self):

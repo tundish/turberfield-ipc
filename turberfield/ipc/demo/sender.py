@@ -41,7 +41,9 @@ APP_NAME = "turberfield.ipc.demo.sender"
 Header = namedtuple("Header", ["origin", "next", "poa"])
 
 class EchoClientProtocol(asyncio.DatagramProtocol):
-    def __init__(self, queue, loop):
+
+    def __init__(self, queue, loop, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.queue = queue
         self.loop = loop
         self.transport = None
@@ -70,11 +72,16 @@ class EchoClientProtocol(asyncio.DatagramProtocol):
                 print("Waiting...")
                 msg = yield from self.queue.get()
 
-                # TODO: Poll for receiver app flow, get remote_addr
-                print(Flow.find(token, application=msg[0].next))
-                # Get flow for addressee
+                hdr = msg[0]
+                #msg[0] = hdr._replace()
 
-                remote_addr = msg[0].poa
+                route = next(Flow.find(token, application=hdr.next), None)
+                while route is None:
+                    yield from asyncio.sleep(3, loop=self.loop)
+                udp = Flow.inspect(route)
+
+                #remote_addr = hdr.poa
+                remote_addr = (udp.addr, udp.port)
 
                 # TODO: Sequence -> RSON
                 # TODO: Framing
