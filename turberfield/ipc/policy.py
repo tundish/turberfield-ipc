@@ -39,7 +39,8 @@ class POA:
     """
     class UDP(SavesToJSON):
 
-        def __init__(self, port=None, pool=slice(49152, 65535), taken=[]):
+        def __init__(self, addr="127.0.0.1", port=None, pool=slice(49152, 65535), taken=[]):
+            self.addr = addr
             # TODO: Taken is a list of existing objects
             self.port = port or random.randint(pool.start, pool.stop)
 

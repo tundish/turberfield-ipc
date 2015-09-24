@@ -87,10 +87,30 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
         return path
 
 @Flow.find.register(Resource)
-def find_by_resource(context:Resource, application=None, policy=None, role=None):
-    scan = os.scandir(os.path.join(*[i for i in context if i is not None]))
-    latest = sorted(scan, key=operator.methodcaller("stat"))
-    return list(scan)
+def find_by_resource(context:Resource, application=None, poa=None, role=None):
+    query = Resource(
+        context.root,
+        context.namespace,
+        context.user,
+        context.service,
+        application or context.application,
+        context.flow or "*",
+        role or poa or context.policy or "*",
+        context.suffix or ".json"
+    )
+    p = pathlib.Path(*query[0:5])
+    return [Resource(
+        context.root,
+        context.namespace,
+        context.user,
+        context.service,
+        *i.parts[-3:-1],
+        os.path.splitext(i.name)[0],
+        suffix=i.suffix
+    )
+        for i in
+        p.glob(os.path.join(query.flow, query.policy + query.suffix))
+    ]
 
 @Flow.inspect.register(Resource)
 def inspect_by_resource(context:Resource):

@@ -105,11 +105,11 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    dif = token(args.connect, APP_NAME)
-    flow = Flow.create(dif, poa="udp")
-    # TODO Get local_addr
+    tok = token(args.connect, APP_NAME)
+    flow = Flow.create(tok, poa="udp")
+    udp = Flow.inspect(flow)
 
-    log.info(flow)
+    log.info(udp)
 
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
@@ -117,11 +117,12 @@ def main(args):
     queue = asyncio.Queue(loop=loop)
     connect = loop.create_datagram_endpoint(
         lambda: EchoClientProtocol(queue, loop),
-        local_addr=('127.0.0.1', 1))
+        local_addr=(udp.addr, udp.port))
     transport, protocol = loop.run_until_complete(connect)
     task = loop.create_task(protocol())
 
     # TODO: Poll for receiver app flow, get remote_addr
+    print(Flow.find(tok)) 
     msg = (
         Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
         "Hello World!"

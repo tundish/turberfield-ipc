@@ -21,6 +21,12 @@ import asyncio
 APP_NAME = "turberfield.ipc.demo.receiver"
 
 class EchoServerProtocol:
+
+    def __init__(self, queue, loop):
+        self.queue = queue
+        self.loop = loop
+        self.transport = None
+
     def connection_made(self, transport):
         self.transport = transport
 
@@ -37,13 +43,47 @@ class EchoServerProtocol:
     def error_received(self, exc):
         print('Error received:', exc)
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+__doc__ = """
+Runs a '{0}' process.
+""".format(APP_NAME)
+
+
+def main(args):
+    log = logging.getLogger(APP_NAME)
+    log.setLevel(args.log_level)
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    ch = logging.StreamHandler()
+
+    if args.log_path is None:
+        ch.setLevel(args.log_level)
+    else:
+        fh = WatchedFileHandler(args.log_path)
+        fh.setLevel(args.log_level)
+        fh.setFormatter(formatter)
+        log.addHandler(fh)
+        ch.setLevel(logging.WARNING)
+
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
+
+    tok = token(args.connect, APP_NAME)
+    flow = Flow.create(tok, poa="udp")
+    udp = Flow.inspect(flow)
+
+    log.info(udp)
+
+    loop = asyncio.SelectorEventLoop()
+    asyncio.set_event_loop(loop)
+
+    queue = asyncio.Queue(loop=loop)
+    connect = loop.create_datagram_endpoint(
+        lambda: EchoServerProtocol(queue, loop),
+        local_addr=(udp.addr, udp.port))
     print("Starting UDP server")
-    # One protocol instance will be created to serve all client requests
-    listen = loop.create_datagram_endpoint(
-        EchoServerProtocol, local_addr=('127.0.0.1', 9999))
-    transport, protocol = loop.run_until_complete(listen)
+    transport, protocol = loop.run_until_complete(connect)
+    task = loop.create_task(protocol())
 
     try:
         loop.run_forever()
@@ -52,3 +92,20 @@ if __name__ == "__main__":
 
     transport.close()
     loop.close()
+
+def run():
+    p = argparse.ArgumentParser(
+        __doc__,
+        fromfile_prefix_chars="@"
+    )
+    p = add_common_options(p)
+    args = p.parse_args()
+    if args.version:
+        sys.stderr.write(__version__ + "\n")
+        rv = 0
+    else:
+        rv = main(args)
+    sys.exit(rv)
+
+if __name__ == "__main__":
+    run()
