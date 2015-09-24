@@ -18,10 +18,12 @@
 
 import argparse
 import asyncio
+from collections import namedtuple
 import functools
 import json
 import logging
 import os
+import socket
 import sys
 import time
 
@@ -32,10 +34,13 @@ from turberfield.ipc.cli import add_common_options
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import token
 from turberfield.ipc.fsdb import Resource
+import turberfield.ipc.demo.receiver
 
 APP_NAME = "turberfield.ipc.demo.sender"
 
-class EchoClientProtocol:
+Header = namedtuple("Header", ["origin", "next", "poa"])
+
+class EchoClientProtocol(asyncio.DatagramProtocol):
     def __init__(self, queue, loop):
         self.queue = queue
         self.loop = loop
@@ -64,9 +69,13 @@ class EchoClientProtocol:
             try:
                 print("Waiting...")
                 msg = yield from self.queue.get()
+                remote_addr = msg[0].poa
+                # Get flow for addressee
+                # TODO: Sequence -> RSON
                 # TODO: Framing
                 print('Send:', msg)
-                self.transport.sendto(msg.encode())
+                for unit in msg[1:]:
+                    self.transport.sendto(unit.encode(), addr=remote_addr)
             except Exception as e:
                 print(e)
                 continue
@@ -98,6 +107,8 @@ def main(args):
 
     dif = token(args.connect, APP_NAME)
     flow = Flow.create(dif, poa="udp")
+    # TODO Get local_addr
+
     log.info(flow)
 
     loop = asyncio.SelectorEventLoop()
@@ -106,13 +117,21 @@ def main(args):
     queue = asyncio.Queue(loop=loop)
     connect = loop.create_datagram_endpoint(
         lambda: EchoClientProtocol(queue, loop),
-        remote_addr=('127.0.0.1', 9999))
+        local_addr=('127.0.0.1', 1))
     transport, protocol = loop.run_until_complete(connect)
     task = loop.create_task(protocol())
-    loop.call_soon_threadsafe(functools.partial(queue.put_nowait, "Hello World!"))
+
+    # TODO: Poll for receiver app flow, get remote_addr
+    msg = (
+        Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
+        "Hello World!"
+    )
+    loop.call_soon_threadsafe(functools.partial(queue.put_nowait, msg))
     loop.run_forever()
     transport.close()
     loop.close()
+    import time
+    time.sleep(6)
 
 def run():
     p = argparse.ArgumentParser(

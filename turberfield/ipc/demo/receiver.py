@@ -18,12 +18,18 @@
 
 import asyncio
 
+APP_NAME = "turberfield.ipc.demo.receiver"
+
 class EchoServerProtocol:
     def connection_made(self, transport):
         self.transport = transport
 
     def datagram_received(self, data, addr):
         message = data.decode()
+        #TODO: De-frame
+        # Retrieve user name from header (simulate login)
+        # Retrieve application name from header
+        # Get flow -> addr.
         print('Received %r from %s' % (message, addr))
         print('Send %r to %s' % (message, addr))
         self.transport.sendto(data, addr)
@@ -31,17 +37,18 @@ class EchoServerProtocol:
     def error_received(self, exc):
         print('Error received:', exc)
 
-loop = asyncio.get_event_loop()
-print("Starting UDP server")
-# One protocol instance will be created to serve all client requests
-listen = loop.create_datagram_endpoint(
-    EchoServerProtocol, local_addr=('127.0.0.1', 9999))
-transport, protocol = loop.run_until_complete(listen)
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    print("Starting UDP server")
+    # One protocol instance will be created to serve all client requests
+    listen = loop.create_datagram_endpoint(
+        EchoServerProtocol, local_addr=('127.0.0.1', 9999))
+    transport, protocol = loop.run_until_complete(listen)
 
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
 
-transport.close()
-loop.close()
+    transport.close()
+    loop.close()
