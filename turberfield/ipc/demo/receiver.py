@@ -80,7 +80,7 @@ def main(args):
     flow = Flow.create(tok, poa="udp")
     udp = Flow.inspect(flow)
 
-    log.info(udp)
+    log.info("Local address {0.addr}:{0.port}.".format(udp))
 
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
@@ -90,7 +90,7 @@ def main(args):
         lambda: EchoServerProtocol(queue, loop),
         local_addr=(udp.addr, udp.port))
     print("Starting UDP server")
-    #transport, protocol = loop.run_until_complete(connect)
+    transport, protocol = loop.run_until_complete(connect)
     #task = loop.create_task(protocol())
 
     try:

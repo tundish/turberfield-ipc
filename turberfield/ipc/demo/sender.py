@@ -77,10 +77,10 @@ class EchoClientProtocol(asyncio.DatagramProtocol):
 
                 route = next(Flow.find(token, application=hdr.next), None)
                 while route is None:
+                    self.log.warning("No route for {}".format(hdr.next))
                     yield from asyncio.sleep(3, loop=self.loop)
+                    route = next(Flow.find(token, application=hdr.next), None)
                 udp = Flow.inspect(route)
-
-                #remote_addr = hdr.poa
                 remote_addr = (udp.addr, udp.port)
 
                 # TODO: Sequence -> RSON
@@ -121,7 +121,7 @@ def main(args):
     flow = Flow.create(tok, poa="udp")
     udp = Flow.inspect(flow)
 
-    log.info(udp)
+    log.info("Local address {0.addr}:{0.port}.".format(udp))
 
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
