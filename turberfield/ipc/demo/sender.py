@@ -64,13 +64,18 @@ class EchoClientProtocol(asyncio.DatagramProtocol):
         loop.stop()
 
     @asyncio.coroutine
-    def __call__(self):
+    def __call__(self, token):
         while True:
             try:
                 print("Waiting...")
                 msg = yield from self.queue.get()
-                remote_addr = msg[0].poa
+
+                # TODO: Poll for receiver app flow, get remote_addr
+                print(Flow.find(token, application=msg[0].next))
                 # Get flow for addressee
+
+                remote_addr = msg[0].poa
+
                 # TODO: Sequence -> RSON
                 # TODO: Framing
                 print('Send:', msg)
@@ -119,10 +124,8 @@ def main(args):
         lambda: EchoClientProtocol(queue, loop),
         local_addr=(udp.addr, udp.port))
     transport, protocol = loop.run_until_complete(connect)
-    task = loop.create_task(protocol())
+    task = loop.create_task(protocol(token=tok))
 
-    # TODO: Poll for receiver app flow, get remote_addr
-    print(Flow.find(tok)) 
     msg = (
         Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
         "Hello World!"

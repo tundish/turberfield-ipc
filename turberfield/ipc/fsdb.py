@@ -99,17 +99,17 @@ def find_by_resource(context:Resource, application=None, poa=None, role=None):
         context.suffix or ".json"
     )
     p = pathlib.Path(*query[0:5])
-    return [Resource(
-        context.root,
-        context.namespace,
-        context.user,
-        context.service,
-        *i.parts[-3:-1],
-        os.path.splitext(i.name)[0],
-        suffix=i.suffix
-    )
-        for i in
-        p.glob(os.path.join(query.flow, query.policy + query.suffix))
+    return [
+        Resource(
+            context.root,
+            context.namespace,
+            context.user,
+            context.service,
+            *i.parts[-3:-1],
+            os.path.splitext(i.name)[0],
+            suffix=i.suffix
+        )
+        for i in p.glob(os.path.join(query.flow, query.policy + query.suffix))
     ]
 
 @Flow.inspect.register(Resource)
