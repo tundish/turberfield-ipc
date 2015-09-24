@@ -28,6 +28,9 @@ class EchoServerProtocol:
         print('Send %r to %s' % (message, addr))
         self.transport.sendto(data, addr)
 
+    def error_received(self, exc):
+        print('Error received:', exc)
+
 loop = asyncio.get_event_loop()
 print("Starting UDP server")
 # One protocol instance will be created to serve all client requests

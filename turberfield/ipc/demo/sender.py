@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+import functools
 import json
 import logging
 import os
@@ -35,15 +36,13 @@ from turberfield.ipc.fsdb import Resource
 APP_NAME = "turberfield.ipc.demo.sender"
 
 class EchoClientProtocol:
-    def __init__(self, message, loop):
-        self.message = message
+    def __init__(self, queue, loop):
+        self.queue = queue
         self.loop = loop
         self.transport = None
 
     def connection_made(self, transport):
         self.transport = transport
-        print('Send:', self.message)
-        self.transport.sendto(self.message.encode())
 
     def datagram_received(self, data, addr):
         print("Received:", data.decode())
@@ -58,6 +57,19 @@ class EchoClientProtocol:
         print("Socket closed, stop the event loop")
         loop = asyncio.get_event_loop()
         loop.stop()
+
+    @asyncio.coroutine
+    def __call__(self):
+        while True:
+            try:
+                print("Waiting...")
+                msg = yield from self.queue.get()
+                # TODO: Framing
+                print('Send:', msg)
+                self.transport.sendto(msg.encode())
+            except Exception as e:
+                print(e)
+                continue
 
 __doc__ = """
 Runs a '{0}' process.
@@ -84,18 +96,20 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    print(vars(args))
     dif = token(args.connect, APP_NAME)
-    print(dif)
     flow = Flow.create(dif, poa="udp")
     log.info(flow)
 
-    loop = asyncio.get_event_loop()
-    message = "Hello World!"
+    loop = asyncio.SelectorEventLoop()
+    asyncio.set_event_loop(loop)
+
+    queue = asyncio.Queue(loop=loop)
     connect = loop.create_datagram_endpoint(
-        lambda: EchoClientProtocol(message, loop),
+        lambda: EchoClientProtocol(queue, loop),
         remote_addr=('127.0.0.1', 9999))
     transport, protocol = loop.run_until_complete(connect)
+    task = loop.create_task(protocol())
+    loop.call_soon_threadsafe(functools.partial(queue.put_nowait, "Hello World!"))
     loop.run_forever()
     transport.close()
     loop.close()
