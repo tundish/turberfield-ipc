@@ -22,6 +22,7 @@ import json
 import operator
 import os.path
 import pathlib
+import platform
 import tempfile
 import urllib.parse
 import warnings
@@ -41,10 +42,14 @@ def token(connect:str, appName:str):
         return None
 
     path = pathlib.Path(bits.netloc, bits.path)
+    if platform.system() == "Windows":
+        root = str(path).lstrip(path.root)
+    else:
+        root = str(path)
 
     user = getpass.getuser()
     rv = Resource(
-        root=str(path),
+        root=root,
         namespace="turberfield",
         user=user,
         service="demo",
