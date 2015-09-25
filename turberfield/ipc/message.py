@@ -18,3 +18,5 @@
 
 
 from collections import namedtuple
+
+Header = namedtuple("Header", ["origin", "next", "poa"])

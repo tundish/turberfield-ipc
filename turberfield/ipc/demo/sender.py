@@ -18,79 +18,20 @@
 
 import argparse
 import asyncio
-from collections import namedtuple
 import functools
-import json
 import logging
-import os
-import socket
 import sys
 import time
 
-import pkg_resources
-
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
+import turberfield.ipc.demo.receiver
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import token
-from turberfield.ipc.fsdb import Resource
-import turberfield.ipc.demo.receiver
+from turberfield.ipc.message import Header
+from turberfield.ipc.node import UDPService
 
 APP_NAME = "turberfield.ipc.demo.sender"
-
-Header = namedtuple("Header", ["origin", "next", "poa"])
-
-class EchoClientProtocol(asyncio.DatagramProtocol):
-
-    def __init__(self, queue, loop, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.queue = queue
-        self.loop = loop
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        print("Received:", data.decode())
-
-        print("Close the socket")
-        self.transport.close()
-
-    def error_received(self, exc):
-        print('Error received:', exc)
-
-    def connection_lost(self, exc):
-        print("Socket closed, stop the event loop")
-        loop = asyncio.get_event_loop()
-        loop.stop()
-
-    @asyncio.coroutine
-    def __call__(self, token):
-        while True:
-            try:
-                print("Waiting...")
-                msg = yield from self.queue.get()
-
-                hdr = msg[0]
-                #msg[0] = hdr._replace()
-
-                route = next(Flow.find(token, application=hdr.next), None)
-                while route is None:
-                    self.log.warning("No route for {}".format(hdr.next))
-                    yield from asyncio.sleep(3, loop=self.loop)
-                    route = next(Flow.find(token, application=hdr.next), None)
-                udp = Flow.inspect(route)
-                remote_addr = (udp.addr, udp.port)
-
-                # TODO: Sequence -> RSON
-                # TODO: Framing
-                print('Send:', msg)
-                for unit in msg[1:]:
-                    self.transport.sendto(unit.encode(), addr=remote_addr)
-            except Exception as e:
-                print(e)
-                continue
 
 __doc__ = """
 Runs a '{0}' process.
@@ -126,9 +67,10 @@ def main(args):
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
 
-    queue = asyncio.Queue(loop=loop)
+    down = asyncio.Queue(loop=loop)
+    up = asyncio.Queue(loop=loop)
     connect = loop.create_datagram_endpoint(
-        lambda: EchoClientProtocol(queue, loop),
+        lambda: UDPService(loop, down=down, up=up),
         local_addr=(udp.addr, udp.port))
     transport, protocol = loop.run_until_complete(connect)
     task = loop.create_task(protocol(token=tok))
@@ -137,11 +79,10 @@ def main(args):
         Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
         "Hello World!"
     )
-    loop.call_soon_threadsafe(functools.partial(queue.put_nowait, msg))
+    loop.call_soon_threadsafe(functools.partial(down.put_nowait, msg))
     loop.run_forever()
     transport.close()
     loop.close()
-    import time
     time.sleep(6)
 
 def run():
