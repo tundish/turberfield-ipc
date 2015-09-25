@@ -55,6 +55,13 @@ class UDPAdapter(asyncio.DatagramProtocol):
 # TODO: conform to interface of turberfield.ipc.mechanism.POA
 class UDPService(UDPAdapter):
 
+    @classmethod
+    def launcher(cls, loop, policies, down=None, up=None):
+        for policy in policies:
+            return loop.create_datagram_endpoint(
+                lambda:cls(loop, down=down, up=up),
+                local_addr=(policy.addr, policy.port))
+
     def __init__(self, loop, down=None, up=None, *args, **kwargs):
         super().__init__(loop, *args, **kwargs)
         self.down = down

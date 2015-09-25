@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+from collections import defaultdict
 import logging
 import sys
 
@@ -77,22 +78,22 @@ def main(args):
     log.addHandler(ch)
 
     tok = token(args.connect, APP_NAME)
-    flow = Flow.create(tok, poa="udp")
-    udp = Flow.inspect(flow)
-
-    log.info("Local address {0.addr}:{0.port}.".format(udp))
+    services = defaultdict(list)
+    for i in Flow.create(tok, poa=["udp"], role=[], routing=[]):
+        policy = Flow.inspect(i)
+        services[policy.mechanism].append(policy)
 
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
 
-    queue = asyncio.Queue(loop=loop)
-    connect = loop.create_datagram_endpoint(
-        lambda: EchoServerProtocol(queue, loop),
-        local_addr=(udp.addr, udp.port))
-    print("Starting UDP server")
-    transport, protocol = loop.run_until_complete(connect)
-    #task = loop.create_task(protocol())
-
+    down = asyncio.Queue(loop=loop)
+    up = asyncio.Queue(loop=loop)
+    for mech, policies in services.items():
+        log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
+        launcher = mech.launcher(loop, policies, down, up)
+        transport, protocol = loop.run_until_complete(launcher)
+        loop.create_task(protocol(token=tok))
+        
     try:
         loop.run_forever()
     except KeyboardInterrupt:

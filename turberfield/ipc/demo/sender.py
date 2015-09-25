@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+from collections import defaultdict
 import functools
 import logging
 import sys
@@ -59,23 +60,22 @@ def main(args):
     log.addHandler(ch)
 
     tok = token(args.connect, APP_NAME)
-    flow = Flow.create(tok, poa="udp")
-    #flow = Flow.create(tok, poa=["udp"], routing=["application"])
-    udp = Flow.inspect(flow)
-
-    log.info("Local address {0.addr}:{0.port}.".format(udp))
+    services = defaultdict(list)
+    for i in Flow.create(tok, poa=["udp"], role=[], routing=[]):
+        policy = Flow.inspect(i)
+        services[policy.mechanism].append(policy)
 
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
 
     down = asyncio.Queue(loop=loop)
     up = asyncio.Queue(loop=loop)
-    connect = loop.create_datagram_endpoint(
-        lambda: UDPService(loop, down=down, up=up),
-        local_addr=(udp.addr, udp.port))
-    transport, protocol = loop.run_until_complete(connect)
-    task = loop.create_task(protocol(token=tok))
-
+    for mech, policies in services.items():
+        log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
+        launcher = mech.launcher(loop, policies, down, up)
+        transport, protocol = loop.run_until_complete(launcher)
+        loop.create_task(protocol(token=tok))
+        
     msg = (
         Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
         "Hello World!"
