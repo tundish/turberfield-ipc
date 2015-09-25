@@ -18,14 +18,12 @@
 
 import argparse
 import asyncio
-from collections import defaultdict
 import logging
 import sys
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
-from turberfield.ipc.flow import Flow
-from turberfield.ipc.fsdb import token
+from turberfield.ipc.node import build_udp_node
 
 APP_NAME = "turberfield.ipc.demo.receiver"
 
@@ -77,30 +75,25 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
-    tok = token(args.connect, APP_NAME)
-    services = defaultdict(list)
-    for i in Flow.create(tok, poa=["udp"], role=[], routing=[]):
-        policy = Flow.inspect(i)
-        services[policy.mechanism].append(policy)
-
     loop = asyncio.SelectorEventLoop()
     asyncio.set_event_loop(loop)
 
     down = asyncio.Queue(loop=loop)
     up = asyncio.Queue(loop=loop)
-    for mech, policies in services.items():
-        log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
-        launcher = mech.launcher(loop, policies, down, up)
-        transport, protocol = loop.run_until_complete(launcher)
-        loop.create_task(protocol(token=tok))
-        
+
+    token, resources = build_udp_node(loop, args.connect, APP_NAME, down, up)
+
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        pass
+        for task in asyncio.Task.all_tasks(loop=loop):
+            task.cancel()
 
-    #transport.close()
-    loop.close()
+        for resource in resources:
+            resource.close()
+
+    finally:
+        loop.close()
 
 def run():
     p = argparse.ArgumentParser(

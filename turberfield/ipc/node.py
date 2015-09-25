@@ -17,6 +17,7 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
+from collections import defaultdict
 import logging
 
 from turberfield.ipc.flow import Flow
@@ -97,3 +98,25 @@ class UDPService(UDPAdapter):
             except Exception as e:
                 print(e)
                 continue
+
+
+def build_udp_node(loop, uri, name, down, up):
+    """
+    Loop must be an asyncio.SelectorEventLoop to support UDP.
+
+    """
+    log = logging.getLogger(name)
+    tok = token(uri, name)
+    services = defaultdict(list)
+    for i in Flow.create(tok, poa=["udp"], role=[], routing=[]):
+        policy = Flow.inspect(i)
+        services[policy.mechanism].append(policy)
+
+    resources = []
+    for mech, policies in services.items():
+        log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
+        launcher = mech.launcher(loop, policies, down, up)
+        transport, protocol = loop.run_until_complete(launcher)
+        resources.append(transport)
+        loop.create_task(protocol(token=tok))
+    return (tok, resources)
