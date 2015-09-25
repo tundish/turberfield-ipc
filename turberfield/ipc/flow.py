@@ -60,6 +60,12 @@ class Flow:
         warnings.warn("No find function registered for {}".format(type(obj)))
         return None
 
+    @staticmethod
+    @singledispatch
+    def replace(obj, data, *args, **kwargs):
+        warnings.warn("No find function registered for {}".format(type(obj)))
+        return None
+
 def recent_slot(path):
     slots = [i for i in os.listdir(os.path.join(path.root, path.home))
              if os.path.isdir(os.path.join(path.root, path.home, i))]

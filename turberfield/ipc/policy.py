@@ -54,7 +54,6 @@ class POA:
 
         @classmethod
         def allocate(cls, others=[], pool=slice(49152, 65535)):
-            print(others)
             return cls(random.randint(pool.start, pool.stop))
 
         def __init__(self, port, addr="127.0.0.1"):

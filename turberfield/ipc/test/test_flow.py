@@ -61,21 +61,6 @@ class FlowTests(unittest.TestCase):
                 issubclass(w[-1].category, UserWarning))
             self.assertIn("file-based", str(w[-1].message))
 
-    def tost_create(self):
-        udp = turberfield.ipc.policy.POA.UDP(654)
-        tx = turberfield.ipc.policy.Role.TX(500, 50, 50)
-        record = json.dumps(vars(tx), indent=0, ensure_ascii=False, sort_keys=False)
-        rv = Flow.create(
-            Resource(
-                ".turberfield", "addisonarches", getpass.getuser(),
-                "test", "addisonarches-web",
-                None, None, None
-            ),
-            poa=None,
-        )
-        self.assertTrue(rv.flow)
-        self.assertTrue(os.path.isdir(os.path.join(*rv[0:5])))
-
     def test_find_flow_empty(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         self.assertIs(None, tok.flow)
@@ -102,6 +87,30 @@ class FlowTests(unittest.TestCase):
         )
 
         rv = next(Flow.create(tok, poa=["udp"], role=[], routing=[]))
+        self.assertEqual("udp", rv.policy)
+        self.assertEqual(".json", rv.suffix)
+
+        udp = Flow.inspect(rv)
+        self.assertIsInstance(udp.port, int)
+        
+    def test_create_routing(self):
+        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+
+        features = list(Flow.create(tok, poa=["udp"], role=[], routing=["application"]))
+        routes = next(
+            (i for i in (Flow.inspect(i) for i in features)
+            if isinstance(i, turberfield.ipc.policy.Routing.Application)),
+            None)
+        self.assertIsInstance(routes, list)
+        
+        data = None
+        rv = Flow.replace(routes, data)
+        self.assertIsInstance(Flow.inspect(rv), list)
+        routes.append(
+            turberfield.ipc.policy.Routing.Application.Rule(
+                None, None, None, 3
+            )
+        )
         self.assertEqual("udp", rv.policy)
         self.assertEqual(".json", rv.suffix)
 

@@ -131,6 +131,7 @@ def inspect_by_resource(context:Resource):
     factories = {
         **dict(gather_from_installation("turberfield.ipc.poa")),
         **dict(gather_from_installation("turberfield.ipc.role")),
+        **dict(gather_from_installation("turberfield.ipc.routing")),
     }
     with open(os.path.join(*context[:-1]) + context.suffix, 'r') as record:
         try:

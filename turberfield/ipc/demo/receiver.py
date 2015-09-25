@@ -27,29 +27,6 @@ from turberfield.ipc.node import build_udp_node
 
 APP_NAME = "turberfield.ipc.demo.receiver"
 
-class EchoServerProtocol:
-
-    def __init__(self, queue, loop):
-        self.queue = queue
-        self.loop = loop
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        #TODO: De-frame
-        # Retrieve user name from header (simulate login)
-        # Retrieve application name from header
-        # Get flow -> addr.
-        print('Received %r from %s' % (message, addr))
-        print('Send %r to %s' % (message, addr))
-        self.transport.sendto(data, addr)
-
-    def error_received(self, exc):
-        print('Error received:', exc)
-
 __doc__ = """
 Runs a '{0}' process.
 """.format(APP_NAME)
