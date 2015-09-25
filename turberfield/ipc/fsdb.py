@@ -65,10 +65,8 @@ def token(connect:str, appName:str):
 
     return rv
 
-#TODO: Args name policy endpoints only. Values are sequences of selected
-# policies.
 @Flow.create.register(Resource)
-def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
+def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefix="flow_", suffix=""):
     if all(path[:5]) and not any(path[5:]):
         # Create or revive a flow
         # TODO: revive
@@ -76,37 +74,33 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
         flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
         path = path._replace(flow=os.path.basename(flow))
 
-    # for registry, choices in [
-    #    ("turberfield.ipc.poa", poa),
-    #    ("turberfield.ipc.role", role),
-    #    ("turberfield.ipc.routing", routing)
-    #]:
-    #   policies = dict(gather_from_installation(registry))
-    #   for option in choices:
-    #       try:
-    #           typ = policies[option]
+    for registry, choices in [
+        ("turberfield.ipc.poa", poa),
+        ("turberfield.ipc.role", role),
+        ("turberfield.ipc.routing", routing)
+    ]:
+        policies = dict(gather_from_installation(registry))
+        for option in choices:
+            try:
+                typ = policies[option]
  
-    poas = dict(gather_from_installation("turberfield.ipc.poa"))
-    try:
-        typ = poas[poa]
-        if issubclass(typ, Pooled):
-            others = [Flow.inspect(i) for i in Flow.find(path, poa=poa)]
-            obj = typ.allocate(others=others)
-        else:
-            obj = typ()
-        path = path._replace(policy=poa, suffix=".json")
-        with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
-            record.write(obj.__json__())
+                if issubclass(typ, Pooled):
+                    others = [Flow.inspect(i) for i in Flow.find(path, policy=option)]
+                    obj = typ.allocate(others=others)
+                else:
+                    obj = typ()
+                path = path._replace(policy=option, suffix=".json")
+                with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
+                    record.write(obj.__json__())
 
-    except KeyError:
-        warnings.warn("No policy found for '{}'.".format(poa))
-        return None
-    else:
-        return path
+            except KeyError:
+                warnings.warn("No policy found for '{}'.".format(option))
+                yield None
+            else:
+                yield path
 
-# TODO: collapse 'poa', 'role' into 'policy'
 @Flow.find.register(Resource)
-def find_by_resource(context:Resource, application=None, poa=None, role=None):
+def find_by_resource(context:Resource, application=None, policy=None):
     query = Resource(
         context.root,
         context.namespace,
@@ -114,7 +108,7 @@ def find_by_resource(context:Resource, application=None, poa=None, role=None):
         context.service,
         application or context.application,
         context.flow or "*",
-        role or poa or context.policy or "*",
+        policy or context.policy or "*",
         context.suffix or ".json"
     )
     p = pathlib.Path(*query[0:5])

@@ -25,7 +25,7 @@ from turberfield.ipc.flow import Pooled
 import turberfield.ipc.node
 
 # TODO: resite
-class SavesToJSON:
+class SavesAsDict:
 
     @classmethod
     def from_json(cls, data):
@@ -34,12 +34,21 @@ class SavesToJSON:
     def __json__(self):
         return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
 
+class SavesAsList:
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(*json.loads(data))
+
+    def __json__(self):
+        return json.dumps(self, indent=0, ensure_ascii=False, sort_keys=False)
+
 class POA:
     """
         Advertised through turberfield.ipc.poa entry point.
 
     """
-    class UDP(Pooled, SavesToJSON):
+    class UDP(Pooled, SavesAsDict):
 
         mechanism = turberfield.ipc.node.UDPService
 
@@ -89,34 +98,23 @@ class Routing:
         """
         pass
 
-    class Application:
+    class Application(list, SavesAsList):
 
-        @classmethod
-        def from_json(cls, data):
-            return cls(**json.loads(data))
-
-        def __json__(self):
-            return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
-
-        def __init__(self, src:"Routing.Address", dst:"Routing.Address", via:"Routing.Address"):
-            self.src = src
-            self.dst = dst
-            self.via = via
-
+        Rule = namedtuple("Rule", ["src", "dst", "via", "hMax"])
 
 class Role:
     """
         Advertised through turberfield.ipc.role entry point.
 
     """
-    class RX(SavesToJSON):
+    class RX(SavesAsDict):
 
         def __init__(self, tMaxPdu=5.0, tMaxAck=0.5, tMaxRtx=11.0):
             self.tMaxPdu = tMaxPdu
             self.tMaxAck = tMaxAck
             self.tMaxRtx = tMaxRtx
 
-    class TX(SavesToJSON):
+    class TX(SavesAsDict):
 
         def __init__(self, tMaxPdu=5.0, tMaxAck=0.5, tMaxRtx=11.0):
             self.tMaxPdu = tMaxPdu

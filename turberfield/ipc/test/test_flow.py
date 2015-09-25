@@ -84,7 +84,7 @@ class FlowTests(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("ignore")
-            rv = Flow.create(tok, poa=None)
+            rv = next(Flow.create(tok, poa=[], role=[], routing=[]), None)
             self.assertIs(None, rv)
 
         results = list(Flow.find(tok))
@@ -101,7 +101,7 @@ class FlowTests(unittest.TestCase):
             "No declared POA endpoints; install package for testing."
         )
 
-        rv = Flow.create(tok, poa="udp")
+        rv = next(Flow.create(tok, poa=["udp"], role=[], routing=[]))
         self.assertEqual("udp", rv.policy)
         self.assertEqual(".json", rv.suffix)
 
@@ -116,7 +116,7 @@ class FlowTests(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            rv = Flow.create(tok, poa="ftp")
+            rv = next(Flow.create(tok, poa=["ftp"], role=[], routing=[]))
             self.assertIs(None, rv)
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))
@@ -127,21 +127,3 @@ class FlowTests(unittest.TestCase):
         self.assertIs(None, tok.flow)
         results = list(Flow.find(tok, application="addisonarches.game"))
         self.assertFalse(results)
-        
-    def tost_attach(self):
-        udp = turberfield.ipc.policy.POA.UDP(654)
-        tx = turberfield.ipc.policy.Role.TX(500, 50, 50)
-        record = json.dumps(vars(tx), indent=0, ensure_ascii=False, sort_keys=False)
-        master = Resource(
-            ".turberfield", "turberfield", getpass.getuser(),
-            "test", "turberfield-master",
-            None, None, None
-        )
-        slave = Resource(
-            ".turberfield", "turberfield", getpass.getuser(),
-            "test", "turberfield-slave",
-            None, None, None
-        )
-        flow = Flow.create(master)
-        rv = Flow.invite(flow, slave)
-        self.assertTrue(rv)
