@@ -22,6 +22,7 @@ import random
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
+import turberfield.ipc.node
 
 # TODO: resite
 class SavesToJSON:
@@ -40,6 +41,8 @@ class POA:
     """
     class UDP(Pooled, SavesToJSON):
 
+        mechanism = turberfield.ipc.node.UDPService
+
         @classmethod
         def allocate(cls, others=[], pool=slice(49152, 65535)):
             print(others)
@@ -48,6 +51,57 @@ class POA:
         def __init__(self, port, addr="127.0.0.1"):
             self.port = port
             self.addr = addr
+
+class Routing:
+    """
+        Advertised through turberfield.ipc.routing entry point.
+
+    """
+    Address = namedtuple(
+        "Resource",
+        ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
+    )
+
+    class Namespace:
+        """
+        Routing aggregated to the namespace domain. Messages going here
+        indicate a need to extend trust. Might route to, eg, a matchmaker
+        service.
+
+        """
+        pass
+
+    class User:
+        """
+        Routing information to the user domain. Messages going here
+        indicate a need to coordinate operations. Might route to, eg: a
+        monitoring service.
+
+        """
+        pass
+
+    class Service:
+        """
+        Routing information to the service domain. Messages going here
+        indicate a need to register applications. Might route to, eg: a
+        discovery service.
+
+        """
+        pass
+
+    class Application:
+
+        @classmethod
+        def from_json(cls, data):
+            return cls(**json.loads(data))
+
+        def __json__(self):
+            return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
+
+        def __init__(self, port, addr="127.0.0.1"):
+            self.port = port
+            self.addr = addr
+
 
 class Role:
     """

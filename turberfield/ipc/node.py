@@ -52,6 +52,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         loop = asyncio.get_event_loop()
         loop.stop()
 
+# TODO: conform to interface of turberfield.ipc.mechanism.POA
 class UDPService(UDPAdapter):
 
     def __init__(self, loop, down=None, up=None, *args, **kwargs):

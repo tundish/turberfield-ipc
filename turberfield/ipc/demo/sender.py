@@ -60,6 +60,7 @@ def main(args):
 
     tok = token(args.connect, APP_NAME)
     flow = Flow.create(tok, poa="udp")
+    #flow = Flow.create(tok, poa=["udp"], routing=["application"])
     udp = Flow.inspect(flow)
 
     log.info("Local address {0.addr}:{0.port}.".format(udp))

@@ -79,6 +79,9 @@ setup(
         "turberfield.ipc.role": [
             "rx = turberfield.ipc.policy:Role.RX",
             "tx = turberfield.ipc.policy:Role.TX",
+        ],
+        "turberfield.ipc.routing": [
+            "application = turberfield.ipc.policy:Routing.Application",
         ]
 
     },
