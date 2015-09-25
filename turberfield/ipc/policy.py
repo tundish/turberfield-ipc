@@ -58,8 +58,8 @@ class Routing:
 
     """
     Address = namedtuple(
-        "Resource",
-        ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
+        "Address",
+        ["namespace", "user", "service", "application"]
     )
 
     class Namespace:
@@ -98,9 +98,10 @@ class Routing:
         def __json__(self):
             return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
 
-        def __init__(self, port, addr="127.0.0.1"):
-            self.port = port
-            self.addr = addr
+        def __init__(self, src:"Routing.Address", dst:"Routing.Address", via:"Routing.Address"):
+            self.src = src
+            self.dst = dst
+            self.via = via
 
 
 class Role:

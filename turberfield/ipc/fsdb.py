@@ -65,6 +65,8 @@ def token(connect:str, appName:str):
 
     return rv
 
+#TODO: Args name policy endpoints only. Values are sequences of selected
+# policies.
 @Flow.create.register(Resource)
 def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
     if all(path[:5]) and not any(path[5:]):
@@ -74,6 +76,16 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
         flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
         path = path._replace(flow=os.path.basename(flow))
 
+    # for registry, choices in [
+    #    ("turberfield.ipc.poa", poa),
+    #    ("turberfield.ipc.role", role),
+    #    ("turberfield.ipc.routing", routing)
+    #]:
+    #   policies = dict(gather_from_installation(registry))
+    #   for option in choices:
+    #       try:
+    #           typ = policies[option]
+ 
     poas = dict(gather_from_installation("turberfield.ipc.poa"))
     try:
         typ = poas[poa]
@@ -92,6 +104,7 @@ def create_from_resource(path:Resource, poa, prefix="flow_", suffix=""):
     else:
         return path
 
+# TODO: collapse 'poa', 'role' into 'policy'
 @Flow.find.register(Resource)
 def find_by_resource(context:Resource, application=None, poa=None, role=None):
     query = Resource(
