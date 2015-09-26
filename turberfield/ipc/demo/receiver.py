@@ -23,6 +23,7 @@ import sys
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.fsdb import token
 from turberfield.ipc.node import build_udp_node
 
 APP_NAME = "turberfield.ipc.demo.receiver"
@@ -58,7 +59,9 @@ def main(args):
     down = asyncio.Queue(loop=loop)
     up = asyncio.Queue(loop=loop)
 
-    token, resources = build_udp_node(loop, args.connect, APP_NAME, down, up)
+    tok = token(args.connect, APP_NAME)
+    node = build_udp_node(loop, tok, down, up)
+    loop.create_task(node(token=tok))
 
     try:
         loop.run_forever()

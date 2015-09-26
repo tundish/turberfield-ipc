@@ -23,7 +23,6 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
-from turberfield.ipc.fsdb import token
 
 # TODO: resite
 Policy = namedtuple("Policy", ["poa", "role", "routing"])
@@ -133,16 +132,14 @@ def build_udp_node(loop, uri, name, down, up):
         loop.create_task(protocol(token=tok))
     return (tok, resources)
 
-def build_udp_node(loop, uri, name, down, up):
+def build_udp_node(loop, token, down, up):
     """
     Loop must be an asyncio.SelectorEventLoop to support UDP.
 
     """
-    log = logging.getLogger(name)
-    tok = token(uri, name)
     services = set()
     policies = Policy(poa=["udp"], role=[], routing=["application"])
-    for ref in Flow.create(tok, **vars(policies)):
+    for ref in Flow.create(token, **vars(policies)):
         obj = Flow.inspect(ref)
         key = next(k for k, v in vars(policies).items() if ref.policy in v) 
         field = getattr(policies, key)
@@ -152,10 +149,16 @@ def build_udp_node(loop, uri, name, down, up):
         except AttributeError:
             warnings.warn("Policy '{}' lacks a mechanism".format(ref.policy))
 
+    udp = next(iter(policies.poa))
     Mixin = type(
         "UdpNode",
         tuple(services),
         {}
     )
-    rv = Mixin(loop, **vars(policies))
-    return rv
+    transport, protocol = loop.run_until_complete(
+        loop.create_datagram_endpoint(
+            lambda:Mixin(loop, down=down, up=up, **vars(policies)),
+            local_addr=(udp.addr, udp.port)
+        )
+    )
+    return protocol
