@@ -20,6 +20,7 @@ import asyncio
 from collections import defaultdict
 from collections import namedtuple
 import logging
+import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import token
@@ -66,13 +67,6 @@ class UDPAdapter(asyncio.DatagramProtocol):
 # TODO: conform to interface of turberfield.ipc.mechanism.POA
 class UDPService(UDPAdapter, TakesPolicy):
 
-    @classmethod
-    def launcher(cls, loop, policies, down=None, up=None):
-        for policy in policies:
-            return loop.create_datagram_endpoint(
-                lambda:cls(loop, down=down, up=up),
-                local_addr=(policy.addr, policy.port))
-
     def __init__(self, loop, down=None, up=None, *args, **kwargs):
         super().__init__(loop, *args, **kwargs)
         self.down = down
@@ -81,6 +75,13 @@ class UDPService(UDPAdapter, TakesPolicy):
     def datagram_received(self, data, addr):
         super().datagram_received(data, addr)
         # Service queues here
+
+    def launcher(self):
+        policy = next(iter(self.policy.udp), None)
+        return policy or loop.create_datagram_endpoint(
+            lambda:self.__class__(loop, down=self.down, up=self.up),
+            local_addr=(policy.addr, policy.port)
+        )
 
     @asyncio.coroutine
     def __call__(self, token):
@@ -131,3 +132,30 @@ def build_udp_node(loop, uri, name, down, up):
         resources.append(transport)
         loop.create_task(protocol(token=tok))
     return (tok, resources)
+
+def build_udp_node(loop, uri, name, down, up):
+    """
+    Loop must be an asyncio.SelectorEventLoop to support UDP.
+
+    """
+    log = logging.getLogger(name)
+    tok = token(uri, name)
+    services = set()
+    policies = Policy(poa=["udp"], role=[], routing=["application"])
+    for ref in Flow.create(tok, **vars(policies)):
+        obj = Flow.inspect(ref)
+        key = next(k for k, v in vars(policies).items() if ref.policy in v) 
+        field = getattr(policies, key)
+        field[field.index(ref.policy)] = obj
+        try:
+            services.add(obj.mechanism)
+        except AttributeError:
+            warnings.warn("Policy '{}' lacks a mechanism".format(ref.policy))
+
+    Mixin = type(
+        "UdpNode",
+        tuple(services),
+        {}
+    )
+    rv = Mixin(loop, **vars(policies))
+    return rv
