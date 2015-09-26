@@ -39,7 +39,7 @@ class SavesAsList:
 
     @classmethod
     def from_json(cls, data):
-        return cls(*json.loads(data))
+        return cls(json.loads(data))
 
     def __json__(self):
         return json.dumps(self, indent=0, ensure_ascii=False, sort_keys=False)
@@ -100,7 +100,16 @@ class Routing:
 
     class Application(list, SavesAsList):
 
-        Rule = namedtuple("Rule", ["src", "dst", "via", "hMax"])
+        Rule = namedtuple("Rule", ["src", "dst", "hMax", "via"])
+
+        @classmethod
+        def from_json(cls, data):
+            return cls(
+                [cls.Rule(*[class_(item) if class_ is int else class_(*item)
+                for item, class_ in zip(rule, (Routing.Address, Routing.Address, int, Routing.Address))]) 
+                for rule in json.loads(data)]
+            )
+
 
 class Role:
     """
