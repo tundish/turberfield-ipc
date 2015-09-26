@@ -18,11 +18,21 @@
 
 import asyncio
 from collections import defaultdict
+from collections import namedtuple
 import logging
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import token
 
+# TODO: resite
+Policy = namedtuple("Policy", ["poa", "role", "routing"])
+
+class TakesPolicy:
+
+    def __init__(self, *args, **kwargs):
+        self.policy = Policy(*(kwargs.pop(i) for i in Policy._fields))
+        super().__init__(*args, **kwargs)
+            
 
 class UDPAdapter(asyncio.DatagramProtocol):
 
@@ -54,7 +64,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         loop.stop()
 
 # TODO: conform to interface of turberfield.ipc.mechanism.POA
-class UDPService(UDPAdapter):
+class UDPService(UDPAdapter, TakesPolicy):
 
     @classmethod
     def launcher(cls, loop, policies, down=None, up=None):
@@ -113,6 +123,7 @@ def build_udp_node(loop, uri, name, down, up):
         services[policy.mechanism].append(policy)
 
     resources = []
+    # Refactor: create a policy.TakesPolicy mixin on the fly
     for mech, policies in services.items():
         log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
         launcher = mech.launcher(loop, policies, down, up)

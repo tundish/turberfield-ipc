@@ -34,6 +34,7 @@ class SavesAsDict:
     def __json__(self):
         return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
 
+ 
 class SavesAsList:
 
     @classmethod
