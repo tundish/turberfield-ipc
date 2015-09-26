@@ -25,8 +25,9 @@ import sys
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
 import turberfield.ipc.demo.receiver
+from turberfield.ipc.fsdb import token
 from turberfield.ipc.message import Header
-from turberfield.ipc.node import build_udp_node
+from turberfield.ipc.node import create_udp_node
 
 APP_NAME = "turberfield.ipc.demo.sender"
 
@@ -61,7 +62,9 @@ def main(args):
     down = asyncio.Queue(loop=loop)
     up = asyncio.Queue(loop=loop)
 
-    token, resources = build_udp_node(loop, args.connect, APP_NAME, down, up)
+    tok = token(args.connect, APP_NAME)
+    node = create_udp_node(loop, tok, down, up)
+    loop.create_task(node(token=tok))
 
     msg = (
         Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),

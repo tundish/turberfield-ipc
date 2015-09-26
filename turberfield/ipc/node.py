@@ -75,13 +75,6 @@ class UDPService(UDPAdapter, TakesPolicy):
         super().datagram_received(data, addr)
         # Service queues here
 
-    def launcher(self):
-        policy = next(iter(self.policy.udp), None)
-        return policy or loop.create_datagram_endpoint(
-            lambda:self.__class__(loop, down=self.down, up=self.up),
-            local_addr=(policy.addr, policy.port)
-        )
-
     @asyncio.coroutine
     def __call__(self, token):
         while True:
@@ -92,12 +85,14 @@ class UDPService(UDPAdapter, TakesPolicy):
                 hdr = msg[0]
                 #msg[0] = hdr._replace()
 
-                route = next(Flow.find(token, application=hdr.next), None)
+                route = next(Flow.find(token, application=hdr.next, policy="udp"), None)
                 while route is None:
                     self.log.warning("No route for {}".format(hdr.next))
                     yield from asyncio.sleep(3, loop=self.loop)
-                    route = next(Flow.find(token, application=hdr.next), None)
+                    route = next(Flow.find(token, application=hdr.next, policy="udp"), None)
+
                 udp = Flow.inspect(route)
+                print(udp)
                 remote_addr = (udp.addr, udp.port)
 
                 # TODO: Sequence -> RSON
@@ -109,34 +104,13 @@ class UDPService(UDPAdapter, TakesPolicy):
                 print(e)
                 continue
 
-
-def build_udp_node(loop, uri, name, down, up):
+def create_udp_node(loop, token, down, up):
     """
-    Loop must be an asyncio.SelectorEventLoop to support UDP.
-
-    """
-    log = logging.getLogger(name)
-    tok = token(uri, name)
-    services = defaultdict(list)
-    for i in Flow.create(tok, poa=["udp"], role=[], routing=[]):
-        policy = Flow.inspect(i)
-        services[policy.mechanism].append(policy)
-
-    resources = []
-    # Refactor: create a policy.TakesPolicy mixin on the fly
-    for mech, policies in services.items():
-        log.info("{0} {1}".format(mech, [vars(i) for i in policies]))
-        launcher = mech.launcher(loop, policies, down, up)
-        transport, protocol = loop.run_until_complete(launcher)
-        resources.append(transport)
-        loop.create_task(protocol(token=tok))
-    return (tok, resources)
-
-def build_udp_node(loop, token, down, up):
-    """
-    Loop must be an asyncio.SelectorEventLoop to support UDP.
+    Creates a node which uses UDP for inter-application messaging
 
     """
+    assert loop.__class__.__name__.endswith("SelectorEventLoop")
+ 
     services = set()
     policies = Policy(poa=["udp"], role=[], routing=["application"])
     for ref in Flow.create(token, **vars(policies)):
@@ -150,11 +124,7 @@ def build_udp_node(loop, token, down, up):
             warnings.warn("Policy '{}' lacks a mechanism".format(ref.policy))
 
     udp = next(iter(policies.poa))
-    Mixin = type(
-        "UdpNode",
-        tuple(services),
-        {}
-    )
+    Mixin = type("UdpNode", tuple(services), {})
     transport, protocol = loop.run_until_complete(
         loop.create_datagram_endpoint(
             lambda:Mixin(loop, down=down, up=up, **vars(policies)),
