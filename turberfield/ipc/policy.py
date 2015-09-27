@@ -110,6 +110,8 @@ class Routing:
                 for rule in json.loads(data)]
             )
 
+        def replace(self, tgt, obj):
+            return None
 
 class Role:
     """

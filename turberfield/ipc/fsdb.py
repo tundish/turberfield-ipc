@@ -141,3 +141,7 @@ def inspect_by_resource(context:Resource):
             return None
         else:
             return obj
+
+@Flow.replace.register(Resource)
+def replace_by_resource(path:Resource, data):
+    return None

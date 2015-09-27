@@ -102,6 +102,7 @@ class FlowTests(unittest.TestCase):
             if isinstance(i, turberfield.ipc.policy.Routing.Application)),
             None)
         self.assertIsInstance(routes, list)
+        self.assertFalse(routes)
         
         data = None
         rv = Flow.replace(routes, data)

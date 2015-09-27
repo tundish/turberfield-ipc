@@ -25,53 +25,55 @@ from turberfield.ipc.policy import Routing
 
 class PolicyTests(unittest.TestCase):
 
-    def test_routing_address_rule(self):
-        dump = textwrap.dedent("""
-        [
-        [
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.sender"
-        ],
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.receiver"
-        ],
-        1,
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.hub"
-        ]
-        ],
-        [
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.sender"
-        ],
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.sender"
-        ],
-        1,
-        [
-        "turberfield",
-        "tundish",
-        "test",
-        "turberfield.ipc.demo.hub"
-        ]
-        ]
-        ]""")
-        table = Routing.Application.from_json(dump)
+    routing = textwrap.dedent(
+    """
+    [
+    [
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.sender"
+    ],
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.receiver"
+    ],
+    1,
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.hub"
+    ]
+    ],
+    [
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.sender"
+    ],
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.sender"
+    ],
+    1,
+    [
+    "turberfield",
+    "tundish",
+    "test",
+    "turberfield.ipc.demo.hub"
+    ]
+    ]
+    ]""").lstrip()
+
+    def test_save_routing_address_rule(self):
+        table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(
             Routing.Application([
                 Routing.Application.Rule(
@@ -88,3 +90,8 @@ class PolicyTests(unittest.TestCase):
                 )
             ]),
             table)
+        self.assertEqual(PolicyTests.routing, table.__json__())
+
+    def test_replace_routing_address_rule(self):
+        table = Routing.Application.from_json(PolicyTests.routing)
+        self.fail(table.replace(None, None))
