@@ -19,6 +19,7 @@
 from collections import namedtuple
 import json
 import random
+import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
@@ -110,8 +111,22 @@ class Routing:
                 for rule in json.loads(data)]
             )
 
-        def replace(self, tgt, obj):
-            return None
+        def replace(self, src, dst, rule=None):
+            matches = [(n, i) for n, i in enumerate(self) if i.src == src and i.dst == dst]
+            if len(matches) > 1:
+                warnings.warn("Duplicate rules for {0}, {1} in table".format(src, dst))
+            try:
+                index, target = next(iter(matches))
+            except StopIteration:
+                rv = None
+            else:
+                rv = target
+                if rule is None:
+                    del self[index]
+                else:
+                    self[index] = rule
+            finally:
+                return rv
 
 class Role:
     """
