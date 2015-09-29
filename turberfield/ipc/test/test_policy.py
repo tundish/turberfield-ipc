@@ -114,7 +114,7 @@ class PolicyTests(unittest.TestCase):
     def test_replace_routing_address_rule(self):
         table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(2, len(table))
-        rule = (
+        rule = Routing.Application.Rule(
             Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             3,
@@ -146,7 +146,7 @@ class PolicyTests(unittest.TestCase):
     def test_replace_routing_address_bad_rule(self):
         table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(2, len(table))
-        rule = (
+        rule = Routing.Application.Rule(
             Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             3,

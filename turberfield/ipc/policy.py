@@ -112,7 +112,6 @@ class Routing:
             )
 
         def replace(self, src, dst, rule=None):
-            rv = None
             matches = [(n, i) for n, i in enumerate(self) if i.src == src and i.dst == dst]
             if len(matches) > 1:
                 warnings.warn("Duplicate rules for {0}, {1} in table".format(src, dst))
@@ -120,11 +119,11 @@ class Routing:
             try:
                 index, rv = next(iter(matches))
             except StopIteration:
-                pass
+                rv = None
             else:
                 if rule is None:
                     del self[index]
-                elif (getattr(rule, "src", rule[0]), getattr(rule, "dst", rule[1]))  == (src, dst):
+                elif isinstance(rule, self.Rule) and (rule.src, rule.dst)  == (src, dst):
                     self[index] = rule
                 else:
                     rv = None
