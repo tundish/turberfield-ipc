@@ -16,7 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import defaultdict
 from collections import namedtuple
+import itertools
 import json
 import random
 import warnings
@@ -26,6 +28,14 @@ from turberfield.ipc.flow import Pooled
 import turberfield.ipc.node
 
 # TODO: resite
+def references_by_type(refs):
+    objects = [Flow.inspect(i) for i in refs]
+    rv = defaultdict(list)
+    for ref, obj in zip(refs, objects):
+        rv[type(obj)].append(ref)
+    return rv
+
+
 class SavesAsDict:
 
     @classmethod
@@ -119,16 +129,18 @@ class Routing:
             try:
                 index, rv = next(iter(matches))
             except StopIteration:
-                rv = None
-            else:
-                if rule is None:
-                    del self[index]
-                elif isinstance(rule, self.Rule) and (rule.src, rule.dst)  == (src, dst):
+                index, rv = (0, None)
+            
+            if rule is None:
+                del self[index]
+            elif isinstance(rule, self.Rule) and (rule.src, rule.dst)  == (src, dst):
+                try:
                     self[index] = rule
-                else:
-                    rv = None
-            finally:
-                return rv
+                except IndexError:
+                    self.insert(index, rule)
+            else:
+                rv = None
+            return rv
 
 class Role:
     """

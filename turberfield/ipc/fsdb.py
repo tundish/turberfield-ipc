@@ -16,8 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import defaultdict
 from collections import namedtuple
 import getpass
+import itertools
 import json
 import operator
 import os.path
@@ -35,6 +37,11 @@ Resource = namedtuple(
     "Resource",
     ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
 )
+
+def references_by_policy(items):
+    return defaultdict(list,
+        {k: list(v) for k, v in itertools.groupby(items, key=operator.attrgetter("policy"))}
+    )
 
 def token(connect:str, appName:str):
     bits = urllib.parse.urlparse(connect)
@@ -143,5 +150,6 @@ def inspect_by_resource(context:Resource):
             return obj
 
 @Flow.replace.register(Resource)
-def replace_by_resource(path:Resource, data):
-    return None
+def replace_by_resource(path:Resource, obj):
+    with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
+        record.write(obj.__json__())

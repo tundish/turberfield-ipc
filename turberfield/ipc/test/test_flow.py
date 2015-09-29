@@ -31,6 +31,7 @@ from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import Resource
 from turberfield.ipc.fsdb import token
 import turberfield.ipc.policy
+from turberfield.ipc.policy import Routing
 
 
 class FlowTests(unittest.TestCase):
@@ -96,27 +97,28 @@ class FlowTests(unittest.TestCase):
     def test_create_routing(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
 
-        features = list(Flow.create(tok, poa=["udp"], role=[], routing=["application"]))
-        routes = next(
-            (i for i in (Flow.inspect(i) for i in features)
-            if isinstance(i, turberfield.ipc.policy.Routing.Application)),
-            None)
-        self.assertIsInstance(routes, list)
-        self.assertFalse(routes)
+        refs = list(Flow.create(tok, poa=["udp"], role=[], routing=["application"]))
+        features = turberfield.ipc.policy.references_by_type(refs)
         
-        data = None
-        rv = Flow.replace(routes, data)
-        self.assertIsInstance(Flow.inspect(rv), list)
-        routes.append(
-            turberfield.ipc.policy.Routing.Application.Rule(
-                None, None, None, 3
-            )
-        )
-        self.assertEqual("udp", rv.policy)
-        self.assertEqual(".json", rv.suffix)
+        routes = features[turberfield.ipc.policy.Routing.Application]
+        self.assertEqual(1, len(routes))
+        table = Flow.inspect(routes[0])
 
-        udp = Flow.inspect(rv)
-        self.assertIsInstance(udp.port, int)
+        self.assertIsInstance(table, turberfield.ipc.policy.Routing.Application)
+        self.assertFalse(table)
+        
+        rule = turberfield.ipc.policy.Routing.Application.Rule(
+            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+            1,
+            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub")
+        )
+        self.assertIs(None, table.replace(rule.src, rule.dst, rule))
+        self.assertEqual(1, len(table))
+
+        Flow.replace(routes[0], table)
+        rv = Flow.inspect(routes[0])
+        self.assertEqual(table, rv)
         
     def test_create_policy_unregistered(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
