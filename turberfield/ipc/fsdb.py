@@ -78,8 +78,8 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
         # Create or revive a flow
         # TODO: revive
         parent = os.path.join(*path[:5])
-        flow = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
-        path = path._replace(flow=os.path.basename(flow))
+        drctry = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
+        flow = path._replace(flow=os.path.basename(drctry))
 
     for registry, choices in [
         ("turberfield.ipc.poa", poa),
@@ -96,15 +96,15 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
                     obj = typ.allocate(others=others)
                 else:
                     obj = typ()
-                path = path._replace(policy=option, suffix=".json")
-                with open(os.path.join(*path[:-1]) + path.suffix, 'w') as record:
+                flow = flow._replace(policy=option, suffix=".json")
+                with open(os.path.join(*flow[:-1]) + flow.suffix, 'w') as record:
                     record.write(obj.__json__())
 
             except KeyError:
                 warnings.warn("No policy found for '{}'.".format(option))
                 yield None
             else:
-                yield path
+                yield flow
 
 @Flow.find.register(Resource)
 def find_by_resource(context:Resource, application=None, policy=None):

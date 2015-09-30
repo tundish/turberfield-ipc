@@ -119,6 +119,18 @@ class FlowTests(unittest.TestCase):
         Flow.replace(routes[0], table)
         rv = Flow.inspect(routes[0])
         self.assertEqual(table, rv)
+
+    @unittest.skip("Progressively slowing test. Subtest takes ~1sec at n == 500.") 
+    def test_pool_allocation(self):
+        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+
+        ports = range(49152, 65536)
+        for n, p in enumerate(ports):
+            with self.subTest(n=n, p=p):
+                flow = list(Flow.create(tok, poa=["udp"], role=[], routing=[]))
+                query = (Flow.inspect(i) for i in Flow.find(tok, policy="udp"))
+                alloc = {(i.addr, i.port) for i in query}
+                self.assertEqual(n + 1, len(alloc))
         
     def test_create_policy_unregistered(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")

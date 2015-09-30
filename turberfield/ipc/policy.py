@@ -20,7 +20,6 @@ from collections import defaultdict
 from collections import namedtuple
 import itertools
 import json
-import random
 import warnings
 
 from turberfield.ipc.flow import Flow
@@ -65,12 +64,14 @@ class POA:
         mechanism = turberfield.ipc.node.UDPService
 
         @classmethod
-        def allocate(cls, others=[], pool=slice(49152, 65535)):
-            return cls(random.randint(pool.start, pool.stop))
+        def allocate(cls, addr="127.0.0.1", ports=slice(49152, 65535, 1), others=[]):
+            taken = {(i.addr, i.port) for i in others}
+            pool = {(addr, i) for i in range(ports.start, ports.stop, ports.step)}
+            return cls(*(pool - taken).pop())
 
-        def __init__(self, port, addr="127.0.0.1"):
-            self.port = port
+        def __init__(self, addr, port):
             self.addr = addr
+            self.port = port
 
 class Routing:
     """
