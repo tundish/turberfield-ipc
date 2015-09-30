@@ -126,10 +126,10 @@ class FlowTests(unittest.TestCase):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
         search = ((i, Flow.inspect(i)) for i in Flow.find(tok, policy="application"))
         query = (
-                ref
-                for ref, table in search
-                for rule in table
-                if rule.dst.application == "turberfield.ipc.demo.receiver"
+            ref
+            for ref, table in search
+            for rule in table
+            if rule.dst.application == "turberfield.ipc.demo.receiver"
         )
         self.assertEqual(1, len(list(query)))
 

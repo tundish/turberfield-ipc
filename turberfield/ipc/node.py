@@ -85,7 +85,15 @@ class UDPService(UDPAdapter, TakesPolicy):
                 hdr = msg[0]
                 #msg[0] = hdr._replace()
 
+                # TODO: Two chances; local instance or route to external instance
                 route = next(Flow.find(token, application=hdr.next, policy="udp"), None)
+                #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
+                #query = (
+                #    ref
+                #    for ref, table in search
+                #    for rule in table
+                #    if rule.dst.application == "turberfield.ipc.demo.receiver"
+                #)
                 while route is None:
                     self.log.warning("No route for {}".format(hdr.next))
                     yield from asyncio.sleep(3, loop=self.loop)
