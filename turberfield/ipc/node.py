@@ -23,6 +23,8 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
+from turberfield.ipc.netstrings import dumpb
+from turberfield.ipc.netstrings import loadb
 
 # TODO: resite
 Policy = namedtuple("Policy", ["poa", "role", "routing"])
@@ -39,6 +41,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
     def __init__(self, loop, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loop = loop
+        self.decoder = loadb(encoding="utf-8")
         self.transport = None
 
     def connection_made(self, transport):
@@ -46,14 +49,16 @@ class UDPAdapter(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         # Routing only here, no service!
-        message = data.decode()
-        #TODO: De-frame
-        # Retrieve user name from header (simulate login)
-        # Retrieve application name from header
-        # Get flow -> addr.
-        print('Received %r from %s' % (message, addr))
-        print('Send %r to %s' % (message, addr))
+        packet = self.decoder.send(data)
+        if packet is not None:
+            print("Received ", packet)
+        #TODO: Access header
+        # Do routing
+
+        # Routing only: modify header and send on
         self.transport.sendto(data, addr)
+
+        # Message delivery: needs 
 
     def error_received(self, exc):
         print('Error received:', exc)

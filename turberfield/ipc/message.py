@@ -18,5 +18,114 @@
 
 
 from collections import namedtuple
+from functools import singledispatch
+import re
+import warnings
 
-Header = namedtuple("Header", ["origin", "next", "poa"])
+Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
+Message = namedtuple("Message", ["header", "payload"])
+Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
+
+# TODO: Parse and unparse Messages
+# TODO: Header extraction via regex rather than full RSON read.
+
+class TypesEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, type(re.compile(""))):
+            return obj.pattern
+
+        try:
+            return obj.strftime("%Y-%m-%d %H:%M:%S")
+        except AttributeError:
+            return json.JSONEncoder.default(self, obj)
+
+def obj_to_odict(obj):
+    rv = OrderedDict([("_type", obj.__class__.__name__)])
+    rv.update(obj._asdict())
+    return rv
+
+
+@singledispatch
+def dumps(obj, **kwargs):
+    data = obj_to_odict(obj)
+    for i in dumps(data, **kwargs):
+        yield i
+
+@dumps.register(dict)
+def dumps_dict(obj, indent=0):
+    yield json.dumps(
+        obj,
+        cls=TypesEncoder,
+        indent=indent
+    )
+
+@dumps.register(list)
+def dumps_list(objs):
+    for obj in objs:
+        for content in dumps(obj):
+            yield content
+
+@singledispatch
+def load(arg):
+    raise NotImplementedError
+
+@load.register(Header)
+def load_header(obj):
+    yield obj
+
+@load.register(Scalar)
+def load_scalar(obj):
+    yield obj._replace(regex=re.compile(obj.regex))
+
+@load.register(dict)
+def load_dict(data, types=_public):
+    name = data.pop("_type", None)
+    try:
+        typ = types[name]
+    except KeyError:
+        warnings.warn(
+            "Type '{}' not recognised".format(name)
+        )
+        raise
+    try:
+        for obj in load(typ(**data)):
+            yield obj
+    except TypeError:
+        warnings.warn(
+            "Parameter mismatch against {}".format(typ.__name__)
+        )
+
+@load.register(list)
+def load_list(data):
+    for obj in data:
+        yield load(obj)
+
+@load.register(str)
+def load_str(data):
+    bits = rson.loads(data)
+    items = bits if isinstance(bits, list) else [bits]
+    for n, item in enumerate(items):
+        try:
+            for obj in load(item):
+                yield obj
+        except KeyError:
+            warnings.warn(
+                "No load of item {}".format(n + 1)
+            )
+        except IndexError:
+            warnings.warn(
+                "Missing data in {}".format(n + 1)
+            )
+
+@load.register(bytes)
+def load_bytes(data):
+    yield from load(data.decode("utf-8"))
+
+@load.register(Step)
+def load_step(obj):
+    yield obj
+
+@singledispatch
+def replace(obj, seq):
+    raise NotImplementedError
