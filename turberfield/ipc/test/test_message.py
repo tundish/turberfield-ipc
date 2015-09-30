@@ -31,16 +31,22 @@ class MessageTester(unittest.TestCase):
         {
         _type: turberfield.ipc.message.Header,
         id: "aa27e84fa93843658bfcd5b4f9ceee4f",
-        src: null,
-        dst: null,
+        src: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.sender" ],
+        dst: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.receiver" ],
         hMax: 3,
-        via: null,
+        via: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.hub" ],
         hop: 0
         }
         """)
         msg = turberfield.ipc.message.loads(data)
         self.assertIsInstance(msg, turberfield.ipc.message.Message)
         self.assertIsInstance(msg.header, turberfield.ipc.message.Header)
+        self.assertIsInstance(msg.header.src, turberfield.ipc.policy.Routing.Address)
+        self.assertEqual("turberfield.ipc.demo.sender", msg.header.src.application)
+        self.assertIsInstance(msg.header.dst, turberfield.ipc.policy.Routing.Address)
+        self.assertEqual("turberfield.ipc.demo.receiver", msg.header.dst.application)
+        self.assertIsInstance(msg.header.via, turberfield.ipc.policy.Routing.Address)
+        self.assertEqual("turberfield.ipc.demo.hub", msg.header.via.application)
         self.assertIsInstance(msg.payload, list)
         self.assertFalse(msg.payload)
 
@@ -49,15 +55,15 @@ class MessageTester(unittest.TestCase):
         {
         _type: turberfield.ipc.message.Header,
         id: "aa27e84fa93843658bfcd5b4f9ceee4f",
-        src: null,
-        dst: null,
+        src: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.sender" ],
+        dst: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.receiver" ],
         hMax: 3,
         hop: 0
         }
         """)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            steps = list(turberfield.ipc.message.loads(data))
+            msg = turberfield.ipc.message.loads(data)
             self.assertEqual(1, len(w))
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))
@@ -68,16 +74,17 @@ class MessageTester(unittest.TestCase):
         {
         _type: turberfield.ipc.message.Bogus,
         id: "aa27e84fa93843658bfcd5b4f9ceee4f",
-        src: null,
-        dst: null,
+        src: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.sender" ],
+        dst: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.receiver" ],
         hMax: 3,
+        via: [ "turberfield", "tundish", "test", "turberfield.ipc.demo.hub" ],
         via: null,
         hop: 0
         }
         """)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            steps = list(turberfield.ipc.message.loads(data))
+            msg = turberfield.ipc.message.loads(data)
             self.assertEqual(2, len(w))
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))

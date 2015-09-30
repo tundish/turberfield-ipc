@@ -26,6 +26,8 @@ import warnings
 
 import rson
 
+import turberfield.ipc.policy
+
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
@@ -76,7 +78,10 @@ def dumps_list(objs):
 
 def loads(data):
     rv = list(load(data))
-    return Message(rv[0], rv[1:])
+    try:
+        return Message(rv[0], rv[1:])
+    except IndexError:
+        return Message(None, [])
 
 @singledispatch
 def load(arg):
@@ -84,7 +89,11 @@ def load(arg):
 
 @load.register(Header)
 def load_header(obj):
-    yield obj
+    yield obj._replace(
+        src=turberfield.ipc.policy.Routing.Address(*obj.src),
+        dst=turberfield.ipc.policy.Routing.Address(*obj.dst),
+        via=turberfield.ipc.policy.Routing.Address(*obj.via),
+    )
 
 @load.register(Scalar)
 def load_scalar(obj):
