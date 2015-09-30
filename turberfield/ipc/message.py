@@ -19,15 +19,23 @@
 
 from collections import namedtuple
 from functools import singledispatch
+import inspect
+import json
 import re
 import warnings
+
+import rson
 
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
 
-# TODO: Parse and unparse Messages
-# TODO: Header extraction via regex rather than full RSON read.
+_public = {
+    ".".join((
+        dict(inspect.getmembers(i)).get("__module__"),
+        i.__name__)
+    ): i for i in (Header, Scalar)
+}
 
 class TypesEncoder(json.JSONEncoder):
 
@@ -65,6 +73,10 @@ def dumps_list(objs):
     for obj in objs:
         for content in dumps(obj):
             yield content
+
+def loads(data):
+    rv = list(load(data))
+    return Message(rv[0], rv[1:])
 
 @singledispatch
 def load(arg):
@@ -121,10 +133,6 @@ def load_str(data):
 @load.register(bytes)
 def load_bytes(data):
     yield from load(data.decode("utf-8"))
-
-@load.register(Step)
-def load_step(obj):
-    yield obj
 
 @singledispatch
 def replace(obj, seq):
