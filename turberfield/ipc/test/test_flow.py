@@ -120,6 +120,19 @@ class FlowTests(unittest.TestCase):
         rv = Flow.inspect(routes[0])
         self.assertEqual(table, rv)
 
+    def test_route_inspection_use_case(self):
+        self.test_create_routing()
+
+        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        search = ((i, Flow.inspect(i)) for i in Flow.find(tok, policy="application"))
+        query = (
+                ref
+                for ref, table in search
+                for rule in table
+                if rule.dst.application == "turberfield.ipc.demo.receiver"
+        )
+        self.assertEqual(1, len(list(query)))
+
     @unittest.skip("Progressively slowing test. Subtest takes ~1sec at n == 500.") 
     def test_pool_allocation(self):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
