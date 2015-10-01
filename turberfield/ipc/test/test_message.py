@@ -17,10 +17,13 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import os.path
+import tempfile
 import textwrap
 import unittest
 import warnings
 
+from turberfield.ipc.fsdb import token
 import turberfield.ipc.message
 
 
@@ -89,3 +92,22 @@ class MessageTester(unittest.TestCase):
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))
             self.assertIn("not recognised", str(w[0].message))
+
+class AddressingTester(unittest.TestCase):
+
+    def setUp(self):
+        self.root = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        if os.path.isdir(self.root.name):
+            self.root.cleanup()
+        self.assertFalse(os.path.isdir(self.root.name))
+        self.root = None
+
+    def test_address_no_via(self):
+        app = "addisonarches.web"
+        tok = token("file://{}".format(self.root.name), app)
+        msg = turberfield.ipc.message.parcel(tok, {"text": "Hello World!"})
+        self.assertEqual(app, msg.header.src.application)
+        self.assertEqual(msg.header.src, msg.header.dst)
+        self.assertIs(None, msg.header.via)

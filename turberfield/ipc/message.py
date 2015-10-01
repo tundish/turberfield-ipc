@@ -22,12 +22,14 @@ from functools import singledispatch
 import inspect
 import json
 import re
+import uuid
 import warnings
 
 import rson
 
 import turberfield.ipc.policy
 
+Address = turberfield.ipc.policy.Routing.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
@@ -38,6 +40,17 @@ _public = {
         i.__name__)
     ): i for i in (Header, Scalar)
 }
+
+def parcel(token, *args, dst=None, via=None, hMax=3):
+    hdr = Header(
+        id=uuid.uuid4().hex,
+        src=Address(**{i: getattr(token, i, None) for i in Address._fields}),
+        dst=dst or Address(**{i: getattr(token, i, None) for i in Address._fields}),
+        hMax=hMax,
+        via=via,
+        hop=0,
+    )
+    return Message(hdr, args)
 
 class TypesEncoder(json.JSONEncoder):
 
@@ -90,9 +103,9 @@ def load(arg):
 @load.register(Header)
 def load_header(obj):
     yield obj._replace(
-        src=turberfield.ipc.policy.Routing.Address(*obj.src),
-        dst=turberfield.ipc.policy.Routing.Address(*obj.dst),
-        via=turberfield.ipc.policy.Routing.Address(*obj.via),
+        src=Address(*obj.src),
+        dst=Address(*obj.dst),
+        via=Address(*obj.via),
     )
 
 @load.register(Scalar)
