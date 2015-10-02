@@ -25,9 +25,11 @@ import warnings
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.message import dumps
 from turberfield.ipc.message import loads
+from turberfield.ipc.message import Message
 from turberfield.ipc.netstrings import dumpb
 from turberfield.ipc.netstrings import loadb
 from turberfield.ipc.node import TakesPolicy
+from turberfield.ipc.types import Address
 
 
 class UDPAdapter(asyncio.DatagramProtocol):
@@ -73,38 +75,54 @@ class UDPService(UDPAdapter, TakesPolicy):
         super().datagram_received(data, addr)
         # Service queues here
 
+    def hop(self, token, msg, policy="udp"):
+        hop = next(Flow.find(
+            token,
+            application=msg.header.dst.application,
+            policy=policy),
+        None)
+        if hop is None:
+            raise NotImplementedError
+            # TODO: Get next hop from routing table
+            # mechanism
+            #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
+            #query = (
+            #    ref
+            #    for ref, table in search
+            #    for rule in table
+            #    if rule.dst.application == msg.header.via.application
+            #)
+
+        poa = Flow.inspect(hop)
+        msg = Message(
+            msg.header._replace(
+                hop=msg.header.hop + 1,
+                via=Address(
+                    token.namespace, token.user, token.service, token.application
+                ),
+            ),
+            msg.payload
+        )
+        return (poa, msg)
+
     @asyncio.coroutine
     def __call__(self, token):
         while True:
             try:
                 print("Waiting...")
-                msg = yield from self.down.get()
+                job = yield from self.down.get()
 
-                # TODO: Routing delegated to subclass. Mixed in via policy
-                # mechanism
-                if msg.header.via is not None:
+                poa, msg = self.hop(token, job, policy="udp")
+                if job.header.via is not None:
                     # User-defined route
-                    route = next(Flow.find(
+                    hop = next(Flow.find(
                         token,
-                        application=msg.header.via.application,
+                        application=job.header.via.application,
                         policy="udp"),
                     None)
-                else:
-                    raise NotImplementedError
-                    
-                    #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
-                    #query = (
-                    #    ref
-                    #    for ref, table in search
-                    #    for rule in table
-                    #    if rule.dst.application == "turberfield.ipc.demo.receiver"
-                    #)
+                    poa = Flow.inspect(hop)
 
-                # TODO: Replace hop: 0 with hop: 1
-                # TODO: Replace via with own address
-
-                udp = Flow.inspect(route)
-                remote_addr = (udp.addr, udp.port)
+                remote_addr = (poa.addr, poa.port)
 
                 data = dumpb("\n".join(dumps(msg)))
                 self.transport.sendto(data, remote_addr)
