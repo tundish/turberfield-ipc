@@ -25,6 +25,7 @@ import warnings
 
 from turberfield.ipc.fsdb import token
 import turberfield.ipc.message
+import turberfield.ipc.types
 
 
 class MessageTester(unittest.TestCase):
@@ -44,11 +45,11 @@ class MessageTester(unittest.TestCase):
         msg = turberfield.ipc.message.loads(data)
         self.assertIsInstance(msg, turberfield.ipc.message.Message)
         self.assertIsInstance(msg.header, turberfield.ipc.message.Header)
-        self.assertIsInstance(msg.header.src, turberfield.ipc.policy.Routing.Address)
+        self.assertIsInstance(msg.header.src, turberfield.ipc.types.Address)
         self.assertEqual("turberfield.ipc.demo.sender", msg.header.src.application)
-        self.assertIsInstance(msg.header.dst, turberfield.ipc.policy.Routing.Address)
+        self.assertIsInstance(msg.header.dst, turberfield.ipc.types.Address)
         self.assertEqual("turberfield.ipc.demo.receiver", msg.header.dst.application)
-        self.assertIsInstance(msg.header.via, turberfield.ipc.policy.Routing.Address)
+        self.assertIsInstance(msg.header.via, turberfield.ipc.types.Address)
         self.assertEqual("turberfield.ipc.demo.hub", msg.header.via.application)
         self.assertIsInstance(msg.payload, list)
         self.assertFalse(msg.payload)

@@ -24,7 +24,8 @@ import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
-import turberfield.ipc.node
+from turberfield.ipc.types import Address
+import turberfield.ipc.udp
 
 # TODO: resite
 def references_by_type(refs):
@@ -61,7 +62,7 @@ class POA:
     """
     class UDP(Pooled, SavesAsDict):
 
-        mechanism = turberfield.ipc.node.UDPService
+        mechanism = turberfield.ipc.udp.UDPService
 
         @classmethod
         def allocate(cls, addr="127.0.0.1", ports=slice(49152, 65535, 1), others=[]):
@@ -78,10 +79,6 @@ class Routing:
         Advertised through turberfield.ipc.routing entry point.
 
     """
-    Address = namedtuple(
-        "Address",
-        ["namespace", "user", "service", "application"]
-    )
 
     class Namespace:
         """
@@ -118,7 +115,7 @@ class Routing:
         def from_json(cls, data):
             return cls(
                 [cls.Rule(*[class_(item) if class_ is int else class_(*item)
-                for item, class_ in zip(rule, (Routing.Address, Routing.Address, int, Routing.Address))]) 
+                for item, class_ in zip(rule, (Address, Address, int, Address))]) 
                 for rule in json.loads(data)]
             )
 

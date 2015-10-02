@@ -21,6 +21,7 @@ import textwrap
 import unittest
 
 from turberfield.ipc.policy import Routing
+from turberfield.ipc.types import Address
 
 
 class PolicyTests(unittest.TestCase):
@@ -77,16 +78,16 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(
             Routing.Application([
                 Routing.Application.Rule(
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
                     1,
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
                 ),
                 Routing.Application.Rule(
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
                     1,
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
                 )
             ]),
             table
@@ -97,15 +98,15 @@ class PolicyTests(unittest.TestCase):
         table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(2, len(table))
         old = table.replace(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender")
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender")
         )
         self.assertEqual(
             Routing.Application.Rule(
-                Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-                Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
                 1,
-                Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
+                Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub"),
             ),
             old
         )
@@ -115,29 +116,29 @@ class PolicyTests(unittest.TestCase):
         table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(2, len(table))
         rule = Routing.Application.Rule(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             3,
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver")
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver")
         )
         old = table.replace(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             rule
         )
         self.assertEqual(
             Routing.Application([
                 Routing.Application.Rule(
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
                     1,
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub")
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub")
                 ),
                 Routing.Application.Rule(
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
                     3,
-                    Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver")
+                    Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver")
                 )
             ]),
             table,
@@ -147,14 +148,14 @@ class PolicyTests(unittest.TestCase):
         table = Routing.Application.from_json(PolicyTests.routing)
         self.assertEqual(2, len(table))
         rule = Routing.Application.Rule(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
             3,
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
         )
         old = table.replace(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
             rule
         )
         self.assertIs(None, old)

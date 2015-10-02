@@ -27,9 +27,9 @@ import warnings
 
 import rson
 
-import turberfield.ipc.policy
+import turberfield.ipc.types
 
-Address = turberfield.ipc.policy.Routing.Address
+Address = turberfield.ipc.types.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])

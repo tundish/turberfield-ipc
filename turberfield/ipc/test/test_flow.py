@@ -32,6 +32,7 @@ from turberfield.ipc.fsdb import Resource
 from turberfield.ipc.fsdb import token
 import turberfield.ipc.policy
 from turberfield.ipc.policy import Routing
+from turberfield.ipc.types import Address
 
 
 class FlowTests(unittest.TestCase):
@@ -108,10 +109,10 @@ class FlowTests(unittest.TestCase):
         self.assertFalse(table)
         
         rule = turberfield.ipc.policy.Routing.Application.Rule(
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.sender"),
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.receiver"),
             1,
-            Routing.Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub")
+            Address("turberfield", "tundish", "test", "turberfield.ipc.demo.hub")
         )
         self.assertIs(None, table.replace(rule.src, rule.dst, rule))
         self.assertEqual(1, len(table))
