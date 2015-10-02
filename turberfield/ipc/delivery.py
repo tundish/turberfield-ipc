@@ -27,14 +27,29 @@ class PeerRouter:
         super().__init__(*args, **kwargs)
 
     def hop(self, token, msg, policy):
-        print(token)
+        here = Address(
+            token.namespace, token.user, token.service, token.application)
+
+        if msg.header.hop >= msg.header.hMax:
+            return (None, None)
+
+        msg = Message(
+            msg.header._replace(
+                hop=msg.header.hop + 1,
+                via=here
+            ),
+            msg.payload
+        )
+
+        if msg.header.dst == here:
+            return (None, msg)
+            
         hop = next(Flow.find(
             token,
             application=msg.header.dst.application,
             policy=policy),
         None)
         if hop is None:
-            raise NotImplementedError
             # TODO: Get next hop from routing table
             # mechanism
             #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
@@ -44,18 +59,7 @@ class PeerRouter:
             #    for rule in table
             #    if rule.dst.application == msg.header.via.application
             #)
+            return (None, msg)
 
         poa = Flow.inspect(hop)
-        if msg.header.hop < msg.header.hMax:
-            msg = Message(
-                msg.header._replace(
-                    hop=msg.header.hop + 1,
-                    via=Address(
-                        token.namespace, token.user, token.service, token.application
-                    ),
-                ),
-                msg.payload
-            )
-        else:
-            msg = None
         return (poa, msg)

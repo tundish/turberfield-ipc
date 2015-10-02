@@ -19,6 +19,7 @@
 import asyncio
 from collections import defaultdict
 from collections import namedtuple
+import functools
 import logging
 import warnings
 
@@ -32,9 +33,10 @@ from turberfield.ipc.node import TakesPolicy
 
 class UDPAdapter(asyncio.DatagramProtocol):
 
-    def __init__(self, loop, *args, **kwargs):
+    def __init__(self, loop, token, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loop = loop
+        self.token = token
         self.decoder = loadb(encoding="utf-8")
         self.decoder.send(None)
         self.transport = None
@@ -46,11 +48,22 @@ class UDPAdapter(asyncio.DatagramProtocol):
         self.transport = transport
 
     def datagram_received(self, data, addr):
-        # Routing only here, no service!
+        """
+        Routing only. Provides no upward service.
+
+        """
         packet = self.decoder.send(data)
-        if packet is not None:
-            msg = loads(packet)
-            print("Received ", msg)
+        if packet is None:
+            return (None, None)
+
+        msg = loads(packet)
+        poa, msg = self.hop(self.token, msg, policy="udp")
+        if poa is not None:
+            remote_addr = (poa.addr, poa.port)
+            data = "\n".join(dumps(msg))
+            packet = dumpb(data)
+            self.transport.sendto(packet, remote_addr)
+        return (poa, msg)
 
     def error_received(self, exc):
         print('Error received:', exc)
@@ -62,17 +75,24 @@ class UDPAdapter(asyncio.DatagramProtocol):
 
 class UDPService(UDPAdapter, TakesPolicy):
 
-    def __init__(self, loop, down=None, up=None, *args, **kwargs):
-        super().__init__(loop, *args, **kwargs)
+    def __init__(self, loop, token, down=None, up=None, *args, **kwargs):
+        super().__init__(loop, token, *args, **kwargs)
         self.down = down
         self.up = up
 
     def datagram_received(self, data, addr):
-        # Service queues here
-        super().datagram_received(data, addr)
+        """
+        Extends routing function to serve messages upward.
+
+        """
+        poa, msg = super().datagram_received(data, addr)
+        print("Service copy: ", msg)
+        if msg is not None:
+            self.loop.call_soon_threadsafe(functools.partial(self.up.put_nowait, msg))
 
     @asyncio.coroutine
-    def __call__(self, token):
+    def __call__(self, token=None):
+        token = token or self.token
         while True:
             try:
                 print("Waiting...")
@@ -91,7 +111,6 @@ class UDPService(UDPAdapter, TakesPolicy):
                 if msg is not None:
                     remote_addr = (poa.addr, poa.port)
                     data = "\n".join(dumps(msg))
-                    print(data)
                     packet = dumpb(data)
                     self.transport.sendto(packet, remote_addr)
                     print('Sent:', packet)

@@ -54,7 +54,7 @@ def create_udp_node(loop, token, down, up):
     Mix = type("UdpNode", tuple(services), {})
     transport, protocol = loop.run_until_complete(
         loop.create_datagram_endpoint(
-            lambda:Mix(loop, down=down, up=up, **vars(policies)),
+            lambda:Mix(loop, token, down=down, up=up, **vars(policies)),
             local_addr=(udp.addr, udp.port)
         )
     )
