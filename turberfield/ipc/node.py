@@ -87,32 +87,32 @@ class UDPService(UDPAdapter, TakesPolicy):
                 print("Waiting...")
                 msg = yield from self.down.get()
 
-                hdr = msg[0]
-                #msg[0] = hdr._replace()
-
-                # TODO: Two chances; local instance or route to external instance
-                route = next(Flow.find(token, application=hdr.next, policy="udp"), None)
-                #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
-                #query = (
-                #    ref
-                #    for ref, table in search
-                #    for rule in table
-                #    if rule.dst.application == "turberfield.ipc.demo.receiver"
-                #)
-                while route is None:
-                    self.log.warning("No route for {}".format(hdr.next))
-                    yield from asyncio.sleep(3, loop=self.loop)
-                    route = next(Flow.find(token, application=hdr.next, policy="udp"), None)
+                # TODO: Routing delegated to subclass. Mixed in via policy
+                # mechanism
+                if msg.header.via is not None:
+                    # User-defined route
+                    route = next(Flow.find(
+                        token,
+                        application=msg.header.via.application,
+                        policy="udp"),
+                    None)
+                else:
+                    raise NotImplementedError
+                    
+                    #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
+                    #query = (
+                    #    ref
+                    #    for ref, table in search
+                    #    for rule in table
+                    #    if rule.dst.application == "turberfield.ipc.demo.receiver"
+                    #)
 
                 udp = Flow.inspect(route)
-                print(udp)
                 remote_addr = (udp.addr, udp.port)
 
                 # TODO: Sequence -> RSON
                 # TODO: Framing
                 print('Send:', msg)
-                for unit in msg[1:]:
-                    self.transport.sendto(unit.encode(), addr=remote_addr)
             except Exception as e:
                 print(e)
                 continue
@@ -137,10 +137,10 @@ def create_udp_node(loop, token, down, up):
             warnings.warn("Policy '{}' lacks a mechanism".format(ref.policy))
 
     udp = next(iter(policies.poa))
-    Mixin = type("UdpNode", tuple(services), {})
+    Mix = type("UdpNode", tuple(services), {})
     transport, protocol = loop.run_until_complete(
         loop.create_datagram_endpoint(
-            lambda:Mixin(loop, down=down, up=up, **vars(policies)),
+            lambda:Mix(loop, down=down, up=up, **vars(policies)),
             local_addr=(udp.addr, udp.port)
         )
     )
