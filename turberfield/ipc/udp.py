@@ -23,20 +23,12 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
-#from turberfield.ipc.message import dumps
-#from turberfield.ipc.message import loads
+from turberfield.ipc.message import dumps
+from turberfield.ipc.message import loads
 from turberfield.ipc.netstrings import dumpb
 from turberfield.ipc.netstrings import loadb
+from turberfield.ipc.node import TakesPolicy
 
-# TODO: resite
-Policy = namedtuple("Policy", ["poa", "role", "routing"])
-
-class TakesPolicy:
-
-    def __init__(self, *args, **kwargs):
-        self.policy = Policy(*(kwargs.pop(i) for i in Policy._fields))
-        super().__init__(*args, **kwargs)
-            
 
 class UDPAdapter(asyncio.DatagramProtocol):
 
@@ -44,6 +36,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         super().__init__(*args, **kwargs)
         self.loop = loop
         self.decoder = loadb(encoding="utf-8")
+        self.decoder.send(None)
         self.transport = None
 
     def connection_made(self, transport):
@@ -58,7 +51,6 @@ class UDPAdapter(asyncio.DatagramProtocol):
         # Do routing
 
         # Routing only: modify header and send on
-        self.transport.sendto(data, addr)
 
         # Message delivery: needs 
 
@@ -70,7 +62,6 @@ class UDPAdapter(asyncio.DatagramProtocol):
         loop = asyncio.get_event_loop()
         loop.stop()
 
-# TODO: conform to interface of turberfield.ipc.mechanism.POA
 class UDPService(UDPAdapter, TakesPolicy):
 
     def __init__(self, loop, down=None, up=None, *args, **kwargs):
@@ -109,12 +100,15 @@ class UDPService(UDPAdapter, TakesPolicy):
                     #    if rule.dst.application == "turberfield.ipc.demo.receiver"
                     #)
 
+                # TODO: Replace hop: 0 with hop: 1
+                # TODO: Replace via with own address
+
                 udp = Flow.inspect(route)
                 remote_addr = (udp.addr, udp.port)
 
-                # TODO: Sequence -> RSON
-                # TODO: Framing
-                print('Send:', dumps(msg))
+                data = dumpb("\n".join(dumps(msg)))
+                self.transport.sendto(data, remote_addr)
+                print('Sent:', data)
             except Exception as e:
                 print(e)
                 continue

@@ -16,10 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import namedtuple
 import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
+
+Policy = namedtuple("Policy", ["poa", "role", "routing"])
+
+class TakesPolicy:
+
+    def __init__(self, *args, **kwargs):
+        self.policy = Policy(*(kwargs.pop(i) for i in Policy._fields))
+        super().__init__(*args, **kwargs)
 
 
 def create_udp_node(loop, token, down, up):

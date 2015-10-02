@@ -18,6 +18,7 @@
 
 
 from collections import namedtuple
+from collections import OrderedDict
 from functools import singledispatch
 import inspect
 import json
@@ -71,9 +72,12 @@ def obj_to_odict(obj):
 
 @singledispatch
 def dumps(obj, **kwargs):
-    data = obj_to_odict(obj)
-    for i in dumps(data, **kwargs):
-        yield i
+    try:
+        data = obj_to_odict(obj)
+    except AttributeError:
+        yield obj
+    else:
+        yield from dumps(data, **kwargs)
 
 @dumps.register(dict)
 def dumps_dict(obj, indent=0):
@@ -88,6 +92,10 @@ def dumps_list(objs):
     for obj in objs:
         for content in dumps(obj):
             yield content
+
+@dumps.register(Message)
+def dumps_message(obj):
+    yield from dumps([obj.header, *obj.payload])
 
 def loads(data):
     rv = list(load(data))
