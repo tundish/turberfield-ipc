@@ -19,6 +19,7 @@
 
 from collections import namedtuple
 from collections import OrderedDict
+from datetime import datetime
 from functools import singledispatch
 import inspect
 import json
@@ -33,13 +34,14 @@ import turberfield.ipc.types
 Address = turberfield.ipc.types.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
+Alert = namedtuple("Alert", ["ts", "text"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
 
 _public = {
     ".".join((
         dict(inspect.getmembers(i)).get("__module__"),
         i.__name__)
-    ): i for i in (Header, Scalar)
+    ): i for i in (Alert, Header, Scalar)
 }
 
 def parcel(token, *args, dst=None, via=None, hMax=3):
@@ -65,7 +67,11 @@ class TypesEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 def obj_to_odict(obj):
-    rv = OrderedDict([("_type", obj.__class__.__name__)])
+    rv = OrderedDict([
+        ("_type", ".".join((
+            dict(inspect.getmembers(obj)).get("__module__"),
+            obj.__class__.__name__))),
+    ])
     rv.update(obj._asdict())
     return rv
 
@@ -107,6 +113,12 @@ def loads(data):
 @singledispatch
 def load(arg):
     raise NotImplementedError
+
+@load.register(Alert)
+def load_alert(obj):
+    yield obj._replace(
+        ts=datetime.strptime(obj.ts, "%Y-%m-%d %H:%M:%S"),
+    )
 
 @load.register(Header)
 def load_header(obj):

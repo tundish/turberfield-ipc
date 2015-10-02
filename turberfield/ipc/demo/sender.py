@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+import datetime
 import functools
 import logging
 import sys
@@ -27,6 +28,7 @@ from turberfield.ipc.cli import add_common_options
 import turberfield.ipc.demo.receiver
 from turberfield.ipc.fsdb import token
 from turberfield.ipc.message import Address
+from turberfield.ipc.message import Alert
 from turberfield.ipc.message import parcel
 from turberfield.ipc.node import create_udp_node
 
@@ -67,13 +69,9 @@ def main(args):
     node = create_udp_node(loop, tok, down, up)
     loop.create_task(node(token=tok))
 
-    #msg = (
-    #    Header(APP_NAME, turberfield.ipc.demo.receiver.APP_NAME, ('127.0.0.1', 9999)),
-    #    "Hello World!"
-    #)
     msg = parcel(
         tok,
-        "Hello World!",
+        Alert(datetime.datetime.now(), "Hello World!"),
         via=Address(tok.namespace, tok.user, tok.service, turberfield.ipc.demo.receiver.APP_NAME)
     )
     loop.call_soon_threadsafe(functools.partial(down.put_nowait, msg))

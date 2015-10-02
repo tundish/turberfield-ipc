@@ -25,11 +25,9 @@ import warnings
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.message import dumps
 from turberfield.ipc.message import loads
-from turberfield.ipc.message import Message
 from turberfield.ipc.netstrings import dumpb
 from turberfield.ipc.netstrings import loadb
 from turberfield.ipc.node import TakesPolicy
-from turberfield.ipc.types import Address
 
 
 class UDPAdapter(asyncio.DatagramProtocol):
@@ -41,6 +39,9 @@ class UDPAdapter(asyncio.DatagramProtocol):
         self.decoder.send(None)
         self.transport = None
 
+    def hop(self, token, msg, policy):
+        raise NotImplementedError
+
     def connection_made(self, transport):
         self.transport = transport
 
@@ -48,13 +49,8 @@ class UDPAdapter(asyncio.DatagramProtocol):
         # Routing only here, no service!
         packet = self.decoder.send(data)
         if packet is not None:
-            print("Received ", packet)
-        #TODO: Access header
-        # Do routing
-
-        # Routing only: modify header and send on
-
-        # Message delivery: needs 
+            msg = loads(packet)
+            print("Received ", msg)
 
     def error_received(self, exc):
         print('Error received:', exc)
@@ -72,38 +68,8 @@ class UDPService(UDPAdapter, TakesPolicy):
         self.up = up
 
     def datagram_received(self, data, addr):
-        super().datagram_received(data, addr)
         # Service queues here
-
-    def hop(self, token, msg, policy="udp"):
-        hop = next(Flow.find(
-            token,
-            application=msg.header.dst.application,
-            policy=policy),
-        None)
-        if hop is None:
-            raise NotImplementedError
-            # TODO: Get next hop from routing table
-            # mechanism
-            #search = ((i, Flow.inspect(i)) for i in Flow.find(token, policy="application"))
-            #query = (
-            #    ref
-            #    for ref, table in search
-            #    for rule in table
-            #    if rule.dst.application == msg.header.via.application
-            #)
-
-        poa = Flow.inspect(hop)
-        msg = Message(
-            msg.header._replace(
-                hop=msg.header.hop + 1,
-                via=Address(
-                    token.namespace, token.user, token.service, token.application
-                ),
-            ),
-            msg.payload
-        )
-        return (poa, msg)
+        super().datagram_received(data, addr)
 
     @asyncio.coroutine
     def __call__(self, token):
@@ -122,11 +88,16 @@ class UDPService(UDPAdapter, TakesPolicy):
                     None)
                     poa = Flow.inspect(hop)
 
-                remote_addr = (poa.addr, poa.port)
+                if msg is not None:
+                    remote_addr = (poa.addr, poa.port)
+                    data = "\n".join(dumps(msg))
+                    print(data)
+                    packet = dumpb(data)
+                    self.transport.sendto(packet, remote_addr)
+                    print('Sent:', packet)
+                else:
+                    print("No message from hop.")
 
-                data = dumpb("\n".join(dumps(msg)))
-                self.transport.sendto(data, remote_addr)
-                print('Sent:', data)
             except Exception as e:
                 print(e)
                 continue

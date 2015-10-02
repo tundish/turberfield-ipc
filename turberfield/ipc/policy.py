@@ -22,6 +22,7 @@ import itertools
 import json
 import warnings
 
+import turberfield.ipc.delivery
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
 from turberfield.ipc.types import Address
@@ -108,6 +109,8 @@ class Routing:
         pass
 
     class Application(list, SavesAsList):
+
+        mechanism = turberfield.ipc.delivery.PeerRouter
 
         Rule = namedtuple("Rule", ["src", "dst", "hMax", "via"])
 

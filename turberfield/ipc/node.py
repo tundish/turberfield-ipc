@@ -38,7 +38,7 @@ def create_udp_node(loop, token, down, up):
     """
     assert loop.__class__.__name__.endswith("SelectorEventLoop")
  
-    services = set()
+    services = []
     policies = Policy(poa=["udp"], role=[], routing=["application"])
     for ref in Flow.create(token, **vars(policies)):
         obj = Flow.inspect(ref)
@@ -46,7 +46,7 @@ def create_udp_node(loop, token, down, up):
         field = getattr(policies, key)
         field[field.index(ref.policy)] = obj
         try:
-            services.add(obj.mechanism)
+            services.append(obj.mechanism)
         except AttributeError:
             warnings.warn("Policy '{}' lacks a mechanism".format(ref.policy))
 

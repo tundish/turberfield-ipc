@@ -81,10 +81,11 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
         drctry = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
         flow = path._replace(flow=os.path.basename(drctry))
 
+    # MRO important here.
     for registry, choices in [
+        ("turberfield.ipc.routing", routing),
         ("turberfield.ipc.poa", poa),
-        ("turberfield.ipc.role", role),
-        ("turberfield.ipc.routing", routing)
+        ("turberfield.ipc.role", role)
     ]:
         policies = dict(gather_from_installation(registry))
         for option in choices:
