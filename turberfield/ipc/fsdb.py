@@ -104,6 +104,9 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
             except KeyError:
                 warnings.warn("No policy found for '{}'.".format(option))
                 yield None
+            except Exception as e:
+                warnings.warn("Create error: {}".format(e))
+                yield None
             else:
                 yield flow
 

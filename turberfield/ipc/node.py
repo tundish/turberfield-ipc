@@ -31,6 +31,17 @@ class TakesPolicy:
         super().__init__(*args, **kwargs)
 
 
+def match_policy(token, policy:Policy):
+    policies = {i for p in policy for i in p}
+    flows = Flow.find(token)
+    for flow in flows:
+        matched = []
+        for p in policies:
+            matched.append(next(Flow.find(token, policy=p), None))
+        if all(matched):
+            return matched
+    return None
+
 def create_udp_node(loop, token, down, up):
     """
     Creates a node which uses UDP for inter-application messaging
@@ -40,7 +51,8 @@ def create_udp_node(loop, token, down, up):
  
     services = []
     policies = Policy(poa=["udp"], role=[], routing=["application"])
-    for ref in Flow.create(token, **vars(policies)):
+    refs = match_policy(token, policies) or Flow.create(token, **vars(policies))
+    for ref in refs:
         obj = Flow.inspect(ref)
         key = next(k for k, v in vars(policies).items() if ref.policy in v) 
         field = getattr(policies, key)
