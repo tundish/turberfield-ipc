@@ -75,8 +75,6 @@ def token(connect:str, appName:str):
 @Flow.create.register(Resource)
 def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefix="flow_", suffix=""):
     if all(path[:5]) and not any(path[5:]):
-        # Create or revive a flow
-        # TODO: revive
         parent = os.path.join(*path[:5])
         drctry = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=parent)
         flow = path._replace(flow=os.path.basename(drctry))

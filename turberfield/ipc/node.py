@@ -22,7 +22,7 @@ import warnings
 
 from turberfield.ipc.flow import Flow
 
-Policy = namedtuple("Policy", ["poa", "role", "routing"])
+Policy = namedtuple("Policy", ["routing", "poa", "role"])
 
 class TakesPolicy:
 
@@ -32,7 +32,8 @@ class TakesPolicy:
 
 
 def match_policy(token, policy:Policy):
-    policies = {i for p in policy for i in p}
+    # MRO important here.
+    policies = [i for p in policy for i in p]
     flows = Flow.find(token)
     for flow in flows:
         matched = []
