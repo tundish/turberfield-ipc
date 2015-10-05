@@ -20,10 +20,10 @@ import warnings
 
 
 __doc__ = """
-Netstrings_ are a simple way of framing arbitrarily long strings so they can be
-sent over a socket.
+Netstrings are a way of framing arbitrarily long strings so they can be
+sent over a socket. The `netstring  specification`_ is very simple.
 
-.. _netstrings: http://cr.yp.to/proto/netstrings.txt
+.. _netstring specification: http://cr.yp.to/proto/netstrings.txt
 """
 
 def dumpb(data:str, encoding="utf-8"):
@@ -36,6 +36,25 @@ def dumpb(data:str, encoding="utf-8"):
     return b"%d:%b," % (len(payload), payload)
 
 def loadb(encoding="utf-8"):
+    """
+    This function is a generator. It accepts `bytes` data via its `send
+    method`_. Like all generators, it must be primed before use by sending
+    `None`::
+
+        decoder = loadb()
+        decoder.send(None)
+
+    The generator will yield an object whenever it has collected a complete
+    netstring message::
+
+        msg is None
+        while msg is None:
+            msg = decoder.send(packet)
+        else:
+            print(msg)
+
+    .. _send method: https://docs.python.org/3/reference/expressions.html#generator.send
+    """
     buf = bytearray()
     span = None
     rv = None
