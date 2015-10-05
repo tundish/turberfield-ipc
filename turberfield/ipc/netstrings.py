@@ -20,10 +20,18 @@ import warnings
 
 
 __doc__ = """
-.. _netstring definition: http://cr.yp.to/proto/netstrings.txt
+Netstrings_ are a simple way of framing arbitrarily long strings so they can be
+sent over a socket.
+
+.. _netstrings: http://cr.yp.to/proto/netstrings.txt
 """
 
-def dumpb(data, encoding="utf-8"):
+def dumpb(data:str, encoding="utf-8"):
+    """
+    Convert a string to its netstring representation. Returns a `bytes`
+    object.
+
+    """
     payload = data.encode(encoding=encoding)
     return b"%d:%b," % (len(payload), payload)
 
