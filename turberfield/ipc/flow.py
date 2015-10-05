@@ -17,22 +17,8 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from collections import namedtuple
 from functools import singledispatch
-import os.path
 import warnings
-
-import pkg_resources
-
-# TODO: resite
-def gather_from_installation(key):
-    for i in pkg_resources.iter_entry_points(key):
-        try:
-            ep = i.resolve()
-        except Exception as e:
-            continue
-        else:
-            yield (i.name, ep)
 
 class Pooled:
 
@@ -65,12 +51,3 @@ class Flow:
     def replace(obj, data, *args, **kwargs):
         warnings.warn("No find function registered for {}".format(type(obj)))
         return None
-
-def recent_slot(path):
-    slots = [i for i in os.listdir(os.path.join(path.root, path.home))
-             if os.path.isdir(os.path.join(path.root, path.home, i))]
-    stats = [(os.path.getmtime(os.path.join(path.root, path.home, fP)), fP)
-             for fP in slots]
-    stats.sort(key=operator.itemgetter(0), reverse=True)
-    return Persistent.Resource(
-        path.root, path.home, next((i[1] for i in stats), None), path.file)

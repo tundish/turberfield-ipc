@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import defaultdict
 from collections import namedtuple
 import itertools
 import json
@@ -27,34 +26,9 @@ from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
 from turberfield.ipc.types import Address
 import turberfield.ipc.udp
+from turberfield.utils.misc import SavesAsDict
+from turberfield.utils.misc import SavesAsList
 
-# TODO: resite
-def references_by_type(refs):
-    objects = [Flow.inspect(i) for i in refs]
-    rv = defaultdict(list)
-    for ref, obj in zip(refs, objects):
-        rv[type(obj)].append(ref)
-    return rv
-
-
-class SavesAsDict:
-
-    @classmethod
-    def from_json(cls, data):
-        return cls(**json.loads(data))
-
-    def __json__(self):
-        return json.dumps(vars(self), indent=0, ensure_ascii=False, sort_keys=False)
-
- 
-class SavesAsList:
-
-    @classmethod
-    def from_json(cls, data):
-        return cls(json.loads(data))
-
-    def __json__(self):
-        return json.dumps(self, indent=0, ensure_ascii=False, sort_keys=False)
 
 class POA:
     """

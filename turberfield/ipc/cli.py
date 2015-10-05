@@ -19,8 +19,6 @@
 import logging
 import os.path
 import pathlib
-import posixpath
-import urllib.parse
 
 DFLT_LOCN = pathlib.PurePath(
         os.path.abspath(

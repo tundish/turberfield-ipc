@@ -62,6 +62,7 @@ setup(
     },
     install_requires=[
         "rson>=0.9",
+        "turberfield-utils>=0.014.0",
     ],
     extras_require={
         "docbuild": [

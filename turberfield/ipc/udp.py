@@ -17,11 +17,7 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
-from collections import defaultdict
-from collections import namedtuple
 import functools
-import logging
-import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.message import dumps

@@ -22,6 +22,7 @@ import getpass
 import itertools
 import json
 import operator
+import os
 import os.path
 import pathlib
 import platform
@@ -31,12 +32,22 @@ import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.flow import Pooled
-from turberfield.ipc.flow import gather_from_installation
+from turberfield.utils.misc import gather_installed
+
 
 Resource = namedtuple(
     "Resource",
     ["root", "namespace", "user", "service", "application", "flow", "policy", "suffix"]
 )
+
+def recent_slot(path):
+    slots = [i for i in os.listdir(os.path.join(path.root, path.home))
+             if os.path.isdir(os.path.join(path.root, path.home, i))]
+    stats = [(os.path.getmtime(os.path.join(path.root, path.home, fP)), fP)
+             for fP in slots]
+    stats.sort(key=operator.itemgetter(0), reverse=True)
+    return Resource(
+        path.root, path.home, next((i[1] for i in stats), None), path.file)
 
 def references_by_policy(items):
     return defaultdict(list,
@@ -85,7 +96,7 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
         ("turberfield.ipc.poa", poa),
         ("turberfield.ipc.role", role)
     ]:
-        policies = dict(gather_from_installation(registry))
+        policies = dict(gather_installed(registry))
         for option in choices:
             try:
                 typ = policies[option]
@@ -138,9 +149,9 @@ def find_by_resource(context:Resource, application=None, policy=None):
 @Flow.inspect.register(Resource)
 def inspect_by_resource(context:Resource):
     factories = {
-        **dict(gather_from_installation("turberfield.ipc.poa")),
-        **dict(gather_from_installation("turberfield.ipc.role")),
-        **dict(gather_from_installation("turberfield.ipc.routing")),
+        **dict(gather_installed("turberfield.ipc.poa")),
+        **dict(gather_installed("turberfield.ipc.role")),
+        **dict(gather_installed("turberfield.ipc.routing")),
     }
     with open(os.path.join(*context[:-1]) + context.suffix, 'r') as record:
         try:

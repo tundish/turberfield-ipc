@@ -17,6 +17,7 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from collections import defaultdict
 from collections import namedtuple
 import getpass
 import json
@@ -26,14 +27,21 @@ import tempfile
 import unittest
 import warnings
 
-from turberfield.ipc.flow import gather_from_installation
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.fsdb import Resource
 from turberfield.ipc.fsdb import token
+from turberfield.ipc.fsdb import gather_installed
 import turberfield.ipc.policy
 from turberfield.ipc.policy import Routing
 from turberfield.ipc.types import Address
 
+
+def references_by_type(refs):
+    objects = [Flow.inspect(i) for i in refs]
+    rv = defaultdict(list)
+    for ref, obj in zip(refs, objects):
+        rv[type(obj)].append(ref)
+    return rv
 
 class FlowTests(unittest.TestCase):
 
@@ -84,7 +92,7 @@ class FlowTests(unittest.TestCase):
         self.assertFalse(rv)
 
         self.assertTrue(
-            list(gather_from_installation("turberfield.ipc.poa")),
+            list(gather_installed("turberfield.ipc.poa")),
             "No declared POA endpoints; install package for testing."
         )
 
@@ -99,7 +107,7 @@ class FlowTests(unittest.TestCase):
         tok = token("file://{}".format(self.root.name), "addisonarches.web")
 
         refs = list(Flow.create(tok, poa=["udp"], role=[], routing=["application"]))
-        features = turberfield.ipc.policy.references_by_type(refs)
+        features = references_by_type(refs)
         
         routes = features[turberfield.ipc.policy.Routing.Application]
         self.assertEqual(1, len(routes))

@@ -18,10 +18,8 @@
 
 
 from collections import namedtuple
-from collections import OrderedDict
 from datetime import datetime
 from functools import singledispatch
-import inspect
 import json
 import re
 import uuid
@@ -30,6 +28,9 @@ import warnings
 import rson
 
 import turberfield.ipc.types
+from turberfield.utils.misc import TypesEncoder
+from turberfield.utils.misc import obj_to_odict
+from turberfield.utils.misc import type_dict
 
 Address = turberfield.ipc.types.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
@@ -37,12 +38,7 @@ Message = namedtuple("Message", ["header", "payload"])
 Alert = namedtuple("Alert", ["ts", "text"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
 
-_public = {
-    ".".join((
-        dict(inspect.getmembers(i)).get("__module__"),
-        i.__name__)
-    ): i for i in (Alert, Header, Scalar)
-}
+_public = type_dict(Alert, Header, Scalar)
 
 def parcel(token, *args, dst=None, via=None, hMax=3):
     hdr = Header(
@@ -54,26 +50,6 @@ def parcel(token, *args, dst=None, via=None, hMax=3):
         hop=0,
     )
     return Message(hdr, args)
-
-class TypesEncoder(json.JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj, type(re.compile(""))):
-            return obj.pattern
-
-        try:
-            return obj.strftime("%Y-%m-%d %H:%M:%S")
-        except AttributeError:
-            return json.JSONEncoder.default(self, obj)
-
-def obj_to_odict(obj):
-    rv = OrderedDict([
-        ("_type", ".".join((
-            dict(inspect.getmembers(obj)).get("__module__"),
-            obj.__class__.__name__))),
-    ])
-    rv.update(obj._asdict())
-    return rv
 
 
 @singledispatch
