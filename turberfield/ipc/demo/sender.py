@@ -21,11 +21,12 @@ import asyncio
 import datetime
 import functools
 import logging
+from logging.handlers import WatchedFileHandler
 import sys
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
-import turberfield.ipc.demo.receiver
+import turberfield.ipc.demo.router
 from turberfield.ipc.fsdb import token
 from turberfield.ipc.message import Address
 from turberfield.ipc.message import Alert
@@ -37,6 +38,13 @@ APP_NAME = "turberfield.ipc.demo.sender"
 __doc__ = """
 Runs a '{0}' process.
 """.format(APP_NAME)
+
+
+def queue_logger(loop, queue):
+    log = logging.getLogger(APP_NAME)
+    while True:
+        msg = yield from queue.get()
+        log.info("Received: {}".format(msg))
 
 
 def main(args):
@@ -68,12 +76,14 @@ def main(args):
     tok = token(args.connect, APP_NAME)
     node = create_udp_node(loop, tok, down, up)
     loop.create_task(node(token=tok))
+    loop.create_task(queue_logger(loop, up))
 
     msg = parcel(
         tok,
         Alert(datetime.datetime.now(), "Hello World!"),
-        via=Address(tok.namespace, tok.user, tok.service, turberfield.ipc.demo.receiver.APP_NAME)
+        via=Address(tok.namespace, tok.user, tok.service, turberfield.ipc.demo.router.APP_NAME)
     )
+    log.info("Sending message: {}".format(msg))
     loop.call_soon_threadsafe(functools.partial(down.put_nowait, msg))
 
     try:

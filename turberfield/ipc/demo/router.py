@@ -19,6 +19,7 @@
 import argparse
 import asyncio
 import logging
+from logging.handlers import WatchedFileHandler
 import sys
 
 from turberfield.ipc import __version__
@@ -26,7 +27,7 @@ from turberfield.ipc.cli import add_common_options
 from turberfield.ipc.fsdb import token
 from turberfield.ipc.node import create_udp_node
 
-APP_NAME = "turberfield.ipc.demo.receiver"
+APP_NAME = "turberfield.ipc.demo.router"
 
 __doc__ = """
 Runs a '{0}' process.
@@ -63,6 +64,7 @@ def main(args):
     node = create_udp_node(loop, tok, down, up)
     loop.create_task(node(token=tok))
 
+    log.info("Starting router node...")
     try:
         loop.run_forever()
     except KeyboardInterrupt:

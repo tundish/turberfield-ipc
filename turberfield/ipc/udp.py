@@ -18,6 +18,7 @@
 
 import asyncio
 import functools
+import warnings
 
 from turberfield.ipc.flow import Flow
 from turberfield.ipc.message import dumps
@@ -62,12 +63,10 @@ class UDPAdapter(asyncio.DatagramProtocol):
         return (poa, msg)
 
     def error_received(self, exc):
-        print('Error received:', exc)
+        warnings.warn(exc)
 
     def connection_lost(self, exc):
-        print("Socket closed, stop the event loop")
-        loop = asyncio.get_event_loop()
-        loop.stop()
+        warnings.warn("Socket closed.")
 
 class UDPService(UDPAdapter, TakesPolicy):
 
@@ -82,7 +81,6 @@ class UDPService(UDPAdapter, TakesPolicy):
 
         """
         poa, msg = super().datagram_received(data, addr)
-        print("Service copy: ", msg)
         if msg is not None:
             self.loop.call_soon_threadsafe(functools.partial(self.up.put_nowait, msg))
 
@@ -91,7 +89,6 @@ class UDPService(UDPAdapter, TakesPolicy):
         token = token or self.token
         while True:
             try:
-                print("Waiting...")
                 job = yield from self.down.get()
 
                 poa, msg = self.hop(token, job, policy="udp")
@@ -109,10 +106,9 @@ class UDPService(UDPAdapter, TakesPolicy):
                     data = "\n".join(dumps(msg))
                     packet = dumpb(data)
                     self.transport.sendto(packet, remote_addr)
-                    print('Sent:', packet)
                 else:
-                    print("No message from hop.")
+                    warnings.warn("No message from hop.")
 
             except Exception as e:
-                print(e)
+                warnings.warn(e)
                 continue
