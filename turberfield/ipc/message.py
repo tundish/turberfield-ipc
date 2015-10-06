@@ -33,6 +33,19 @@ from turberfield.utils.misc import obj_to_odict
 from turberfield.utils.misc import type_dict
 
 __doc__ = """
+Registering application objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To include your own classes in message transmissions, you must register them
+with these two generators:
+
+* turberfield.ipc.message.dumps_
+* turberfield.ipc.message.load_
+
+And optionally with this function:
+
+* turberfield.ipc.message.replace_
+
 ::
 
     Alert = namedtuple("Alert", ["ts", "text"])

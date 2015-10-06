@@ -23,6 +23,9 @@ serialisation over the network.
 
 .. autofunction:: turberfield.ipc.message.replace
 
+Creating messages
+~~~~~~~~~~~~~~~~~
+
 .. autofunction:: turberfield.ipc.message.parcel
 
 .. _RSON: https://code.google.com/p/rson/wiki/Manual
