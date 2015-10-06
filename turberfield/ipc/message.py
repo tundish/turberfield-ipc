@@ -32,6 +32,19 @@ from turberfield.utils.misc import TypesEncoder
 from turberfield.utils.misc import obj_to_odict
 from turberfield.utils.misc import type_dict
 
+__doc__ = """
+::
+
+    Alert = namedtuple("Alert", ["ts", "text"])
+
+    @load.register(Alert)
+    def load_alert(obj):
+        yield obj._replace(
+            ts=datetime.strptime(obj.ts, "%Y-%m-%d %H:%M:%S"),
+        )
+
+"""
+
 Address = turberfield.ipc.types.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
 Message = namedtuple("Message", ["header", "payload"])
@@ -154,4 +167,11 @@ def load_bytes(data):
 
 @singledispatch
 def replace(obj, seq):
+    """
+    Finds in the sequence `seq` an existing object corresponding to the argument
+    `obj`. Replaces such an item in the sequence with `obj`, and returns a 2-tuple
+    of (`existing`, `seq`).
+
+    The equivalence of objects is application-specific.
+    """
     raise NotImplementedError
