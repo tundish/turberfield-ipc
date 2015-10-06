@@ -61,6 +61,16 @@ Then after that has launched, do the same with the `sender` process::
 Run on Linux
 ~~~~~~~~~~~~
 
+Install `turberfield-ipc` into a Python virtual environment at `~/py3.5`.
+
+Open up a console and start the `router` process::
+
+    ~/py3.5/bin/python -m turberfield.ipc.demo.router &
+
+Then after that has launched, do the same with the `sender` process::
+
+    ~/py3.5/bin/python -m turberfield.ipc.demo.sender &
+
 Output
 ~~~~~~
 
