@@ -7,27 +7,27 @@ games.
 It is developed by a private individual but released to the public under the
 `GNU General Public License`_.
 
-The API may change as the project proceeds. At this early stage you should
-only use the latest release; it may not be compatible with previous
-versions.
+This package provides an Inter-Process Communications (IPC) framework. 
 
 Requirements
 ::::::::::::
 
-* Turberfield runs on Python 3.4 or later.
-* Some modules require atomic file renaming and named pipes (ie: a POSIX OS).
+Turberfield runs on Python 3.5 or later. It requires these packages:
+
+* `rson`
+* `turberfield-utils`
 
 Usage
 :::::
 
 Download and unpack the source distribution::
 
-    $ tar -xzvf turberfield-ipc-0.001.0.tar.gz
-    $ cd turberfield-ipc-0.001.0
+    $ tar -xzvf turberfield-ipc-0.008.0.tar.gz
+    $ cd turberfield-ipc-0.008.0
 
 Run the tests::
 
-    $ python3.4 -m unittest discover turberfield
+    $ python3.5 -m unittest discover turberfield
 
 Consult the documentation::
 
