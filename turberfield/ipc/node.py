@@ -21,6 +21,7 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
+from turberfield.ipc.message import _public as messageTypes
 
 Policy = namedtuple("Policy", ["routing", "poa", "role"])
 
@@ -43,7 +44,7 @@ def match_policy(token, policy:Policy):
             return matched
     return None
 
-def create_udp_node(loop, token, down, up):
+def create_udp_node(loop, token, down, up, types=messageTypes):
     """
     Creates a node which uses UDP for inter-application messaging
 
@@ -67,7 +68,7 @@ def create_udp_node(loop, token, down, up):
     Mix = type("UdpNode", tuple(services), {})
     transport, protocol = loop.run_until_complete(
         loop.create_datagram_endpoint(
-            lambda:Mix(loop, token, down=down, up=up, **vars(policies)),
+            lambda:Mix(loop, token, types, down=down, up=up, **vars(policies)),
             local_addr=(udp.addr, udp.port)
         )
     )

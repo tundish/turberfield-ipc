@@ -55,6 +55,15 @@ def references_by_policy(items):
     )
 
 def token(connect:str, appName:str):
+    """
+    Generates a token for use with the IPC framework.
+
+    :param connect: A connection string in the form of a URL.
+                    Just now this must be a file path to a user-writeable directory, eg:
+                    'file:///home/alice/.turberfield'.
+    :param appName: The name of your application.
+
+    """
     bits = urllib.parse.urlparse(connect)
     if bits.scheme != "file":
         warnings.warn("Only a file-based DIF cache is available")

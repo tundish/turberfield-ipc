@@ -26,6 +26,7 @@ import warnings
 from turberfield.ipc.fsdb import token
 import turberfield.ipc.message
 import turberfield.ipc.types
+from turberfield.utils.misc import type_dict
 
 
 class MessageTester(unittest.TestCase):
@@ -42,7 +43,7 @@ class MessageTester(unittest.TestCase):
         hop: 0
         }
         """)
-        msg = turberfield.ipc.message.loads(data)
+        msg = turberfield.ipc.message.loads(data, types=(type_dict(turberfield.ipc.message.Header)))
         self.assertIsInstance(msg, turberfield.ipc.message.Message)
         self.assertIsInstance(msg.header, turberfield.ipc.message.Header)
         self.assertIsInstance(msg.header.src, turberfield.ipc.types.Address)

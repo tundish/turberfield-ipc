@@ -22,4 +22,18 @@ Address = namedtuple(
     "Address",
     ["namespace", "user", "service", "application"]
 )
+Address.__doc__ = """`{}`
+
+A semantically hierarchical address for distributed networking.
+
+    namespace
+        Specifies the domain within which the address names are valid.
+    user
+        A unique name of trust within the network.
+    service
+        Identifies a currently operating instantiation of the network.
+    application
+        The name of the node endpoint.
+
+""".format(Address.__doc__)
 

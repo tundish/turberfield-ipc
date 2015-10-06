@@ -30,10 +30,11 @@ from turberfield.ipc.node import TakesPolicy
 
 class UDPAdapter(asyncio.DatagramProtocol):
 
-    def __init__(self, loop, token, *args, **kwargs):
+    def __init__(self, loop, token, types, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loop = loop
         self.token = token
+        self.types = types
         self.decoder = loadb(encoding="utf-8")
         self.decoder.send(None)
         self.transport = None
@@ -53,7 +54,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         if packet is None:
             return (None, None)
 
-        msg = loads(packet)
+        msg = loads(packet, types=self.types)
         poa, msg = self.hop(self.token, msg, policy="udp")
         if poa is not None:
             remote_addr = (poa.addr, poa.port)
@@ -70,8 +71,8 @@ class UDPAdapter(asyncio.DatagramProtocol):
 
 class UDPService(UDPAdapter, TakesPolicy):
 
-    def __init__(self, loop, token, down=None, up=None, *args, **kwargs):
-        super().__init__(loop, token, *args, **kwargs)
+    def __init__(self, loop, token, types, down=None, up=None, *args, **kwargs):
+        super().__init__(loop, token, types, *args, **kwargs)
         self.down = down
         self.up = up
 

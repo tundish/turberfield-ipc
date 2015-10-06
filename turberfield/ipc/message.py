@@ -33,22 +33,23 @@ from turberfield.utils.misc import obj_to_odict
 from turberfield.utils.misc import type_dict
 
 __doc__ = """
-Registering application objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To customise the way your classes are loaded from a received message, you must register them
+with this generator:
 
-To include your own classes in message transmissions, you must register them
-with these two generators:
-
-* turberfield.ipc.message.dumps_
 * turberfield.ipc.message.load_
 
-And optionally with this function:
+and optionally with:
 
+* turberfield.ipc.message.dumps_
 * turberfield.ipc.message.replace_
 
-::
+For example, here's how the :py:mod:`message <turberfield.ipc.message>` module defines its
+own `Alert` class::
 
     Alert = namedtuple("Alert", ["ts", "text"])
+
+And this is how it customises the deserialising of these objects so
+that its `ts` attribute is itself loaded as Python object::
 
     @load.register(Alert)
     def load_alert(obj):
@@ -60,13 +61,37 @@ And optionally with this function:
 
 Address = turberfield.ipc.types.Address
 Header = namedtuple("Header", ["id", "src", "dst", "hMax", "via", "hop"])
-Message = namedtuple("Message", ["header", "payload"])
 Alert = namedtuple("Alert", ["ts", "text"])
 Scalar = namedtuple("Scalar", ["name", "unit", "value", "regex", "tip"])
+
+Message = namedtuple("Message", ["header", "payload"])
+Message.__doc__ = """`{}`
+
+An Message object holds both protocol control information (PCI) and
+application data.
+
+    header
+        PCI data necessary for the delivery of the message.
+    payload
+        Client data destined for the application endpoint.
+""".format(Message.__doc__)
 
 _public = type_dict(Alert, Header, Scalar)
 
 def parcel(token, *args, dst=None, via=None, hMax=3):
+    """
+    :param token: A DIF token. Just now the function
+                  `turberfield.ipc.fsdb.token`_ is the source of these.
+    :param args: Application objects to send in the message.
+    :param dst: An :py:class:`Address <turberfield.ipc.types.Address>` for the destination.
+                If `None`, will be set to the source address (ie: a loopback message).
+    :param via: An :py:class:`Address <turberfield.ipc.types.Address>` to
+                pass the message on to. If `None`, the most direct route is selected.
+    :param hMax: The maximum number of node hops permitted for this message.
+    :rtype: Message
+
+
+    """
     hdr = Header(
         id=uuid.uuid4().hex,
         src=Address(**{i: getattr(token, i, None) for i in Address._fields}),
@@ -80,6 +105,11 @@ def parcel(token, *args, dst=None, via=None, hMax=3):
 
 @singledispatch
 def dumps(obj, **kwargs):
+    """
+    This generator takes a single object as its first argument.
+    It dispatches by type to a handler which serialises the object as RSON.
+
+    """
     try:
         data = obj_to_odict(obj)
     except AttributeError:
@@ -105,15 +135,37 @@ def dumps_list(objs):
 def dumps_message(obj):
     yield from dumps([obj.header, *obj.payload])
 
-def loads(data):
-    rv = list(load(data))
+def loads(data, **kwargs) -> Message:
+    """
+    Use this function to parse an RSON string as a message.
+
+    The optional `types` keyword allows you to specify which classes you expect
+    to load. It's a dictionary mapping the class to its fully-qualified name.
+
+    The helper function :py:func:`turberfield.utils.misc.type_dict` can make one
+    of these for you::
+
+        types = turberfield.utils.misc.type_dict(
+            turberfield.ipc.message.Alert,
+            turberfield.ipc.message.Header
+        )
+        msg = turberfield.ipc.message.loads(data, types=types)
+
+    """
+    rv = list(load(data, **kwargs))
     try:
         return Message(rv[0], rv[1:])
     except IndexError:
         return Message(None, [])
 
 @singledispatch
-def load(arg):
+def load(arg, **kwargs):
+    """
+    This generator function recursively dispatches on the type of its first argument
+    (initially an RSON string).
+    It yields application-specific objects.
+
+    """
     raise NotImplementedError
 
 @load.register(Alert)
@@ -158,12 +210,12 @@ def load_list(data):
         yield load(obj)
 
 @load.register(str)
-def load_str(data):
+def load_str(data, **kwargs):
     bits = rson.loads(data)
     items = bits if isinstance(bits, list) else [bits]
     for n, item in enumerate(items):
         try:
-            for obj in load(item):
+            for obj in load(item, **kwargs):
                 yield obj
         except KeyError:
             warnings.warn(
