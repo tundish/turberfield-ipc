@@ -27,12 +27,12 @@ __doc__ = """
 
 .. py:function:: create_udp_node(loop, token, down, up, types)
    
-   :param loop: An asyncio_ event loop
-   :param token: A DIF token
-   :param down: An asyncio_ queue which takes messages down the network stack
-   :param up: An asyncio_ queue which takes messages up the network stack
-   :param types: An optional dictionary of types mapped by their fully qualified names
-   :rtype: An asyncio_ Protocol instance
+   :param loop: An asyncio_ event loop.
+   :param token: A DIF token.
+   :param down: An asyncio_ queue which takes messages down to the network POA.
+   :param up: An asyncio_ queue which bring up messages from the network POA.
+   :param types: An optional dictionary of types mapped by their fully qualified names.
+   :rtype: An asyncio_ Protocol instance.
 
 .. _asyncio: https://docs.python.org/3/library/asyncio.html#module-asyncio
 

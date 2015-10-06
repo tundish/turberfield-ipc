@@ -28,7 +28,7 @@ Turberfield Inter-Process Communication library
    netstrings
    message
    node
-   protocol
+   example
 
 * :ref:`genindex`
 
