@@ -43,11 +43,11 @@ class Flow:
     @staticmethod
     @singledispatch
     def inspect(obj, *args, **kwargs):
-        warnings.warn("No find function registered for {}".format(type(obj)))
+        warnings.warn("No inspect function registered for {}".format(type(obj)))
         return None
 
     @staticmethod
     @singledispatch
     def replace(obj, data, *args, **kwargs):
-        warnings.warn("No find function registered for {}".format(type(obj)))
+        warnings.warn("No replace function registered for {}".format(type(obj)))
         return None
