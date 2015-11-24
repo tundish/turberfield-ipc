@@ -77,6 +77,7 @@ application data.
 """.format(Message.__doc__)
 
 _public = type_dict(Alert, Header, Scalar)
+registry = _public
 
 def parcel(token, *args, dst=None, via=None, hMax=3):
     """
@@ -112,7 +113,12 @@ def dumps(obj, **kwargs):
     """
     try:
         data = obj_to_odict(obj)
-    except AttributeError:
+    except AttributeError as e:
+        warnings.warn(
+            "Dump issue {0} ({1!r})".format(
+                data, e
+            )
+        )
         yield obj
     else:
         yield from dumps(data, **kwargs)
@@ -166,7 +172,7 @@ def load(arg, **kwargs):
     It yields application-specific objects.
 
     """
-    raise NotImplementedError
+    yield arg
 
 @load.register(Alert)
 def load_alert(obj):
@@ -187,7 +193,7 @@ def load_scalar(obj):
     yield obj._replace(regex=re.compile(obj.regex))
 
 @load.register(dict)
-def load_dict(data, types=_public):
+def load_dict(data, types=registry):
     name = data.pop("_type", None)
     try:
         typ = types[name]
@@ -199,9 +205,11 @@ def load_dict(data, types=_public):
     try:
         for obj in load(typ(**data)):
             yield obj
-    except TypeError:
+    except TypeError as e:
         warnings.warn(
-            "Parameter mismatch against {}".format(typ.__name__)
+            "Parameter mismatch against {0} ({1!r}): {2}".format(
+                typ.__name__, e, data
+            )
         )
 
 @load.register(list)
