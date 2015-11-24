@@ -21,7 +21,7 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
-from turberfield.ipc.message import _public as messageTypes
+from turberfield.ipc.message import registry
 
 __doc__ = """
 
@@ -59,7 +59,7 @@ def match_policy(token, policy:Policy):
             return matched
     return None
 
-def create_udp_node(loop, token, down, up, types=messageTypes):
+def create_udp_node(loop, token, down, up, types=registry):
     """
     Creates a node which uses UDP for inter-application messaging
 
