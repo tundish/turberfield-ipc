@@ -17,6 +17,7 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
+import concurrent.futures
 import functools
 import warnings
 
@@ -102,6 +103,10 @@ class UDPService(UDPAdapter, TakesPolicy):
                     None)
                     poa = Flow.inspect(hop)
 
+                if poa is None:
+                    warnings.warn("Message expired.")
+                    continue
+
                 if msg is not None:
                     remote_addr = (poa.addr, poa.port)
                     data = "\n".join(dumps(msg))
@@ -110,6 +115,8 @@ class UDPService(UDPAdapter, TakesPolicy):
                 else:
                     warnings.warn("No message from hop.")
 
+            except concurrent.futures.CancelledError:
+                break
             except Exception as e:
-                warnings.warn(e)
+                warnings.warn(repr(getattr(e, "args", e) or e))
                 continue
