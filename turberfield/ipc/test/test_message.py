@@ -113,3 +113,12 @@ class AddressingTester(unittest.TestCase):
         self.assertEqual(app, msg.header.src.application)
         self.assertEqual(msg.header.src, msg.header.dst)
         self.assertIs(None, msg.header.via)
+
+    def test_reply(self):
+        app = "addisonarches.web"
+        tok = token("file://{}".format(self.root.name), app)
+        msg = turberfield.ipc.message.parcel(tok, {"text": "Hello World!"})
+        reply = turberfield.ipc.message.reply(msg.header, {"text": "Goodbye World!"})
+        self.assertEqual(msg.header.id, reply.header.id)
+        self.assertEqual(msg.header.src, reply.header.dst)
+        self.assertEqual(msg.header.dst, reply.header.src)

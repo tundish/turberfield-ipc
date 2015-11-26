@@ -103,6 +103,29 @@ def parcel(token, *args, dst=None, via=None, hMax=3):
     )
     return Message(hdr, args)
 
+def reply(header, *args, dst=None, via=None, hMax=3):
+    """
+    :param header: The Header object of the origin message.
+    :param args: Application objects to send in the message.
+    :param dst: An :py:class:`Address <turberfield.ipc.types.Address>` for the destination.
+                If `None`, will be set to the source address (ie: a loopback message).
+    :param via: An :py:class:`Address <turberfield.ipc.types.Address>` to
+                pass the message on to. If `None`, the most direct route is selected.
+    :param hMax: The maximum number of node hops permitted for this message.
+    :rtype: Message
+
+
+    """
+    hdr = Header(
+        id=header.id,
+        src=header.dst,
+        dst=dst or header.src,
+        hMax=hMax,
+        via=via,
+        hop=0,
+    )
+    return Message(hdr, args)
+
 
 @singledispatch
 def dumps(obj, **kwargs):
