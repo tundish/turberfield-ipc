@@ -139,7 +139,7 @@ def dumps(obj, **kwargs):
     except AttributeError as e:
         warnings.warn(
             "Dump issue {0} ({1!r})".format(
-                data, e
+                obj, e
             )
         )
         yield obj
