@@ -68,7 +68,7 @@ def create_udp_node(loop, token, down, up, types=registry):
  
     services = []
     policies = Policy(poa=["udp"], role=[], routing=["application"])
-    refs = match_policy(token, policies) or Flow.create(token, **vars(policies))
+    refs = match_policy(token, policies) or Flow.create(token, **policies._asdict())
     for ref in refs:
         obj = Flow.inspect(ref)
         key = next(k for k, v in vars(policies).items() if ref.policy in v) 
