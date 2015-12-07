@@ -71,7 +71,7 @@ def create_udp_node(loop, token, down, up, types=registry):
     refs = match_policy(token, policies) or Flow.create(token, **policies._asdict())
     for ref in refs:
         obj = Flow.inspect(ref)
-        key = next(k for k, v in vars(policies).items() if ref.policy in v) 
+        key = next(k for k, v in policies._asdict().items() if ref.policy in v) 
         field = getattr(policies, key)
         field[field.index(ref.policy)] = obj
         try:
@@ -83,7 +83,7 @@ def create_udp_node(loop, token, down, up, types=registry):
     Mix = type("UdpNode", tuple(services), {})
     transport, protocol = loop.run_until_complete(
         loop.create_datagram_endpoint(
-            lambda:Mix(loop, token, types, down=down, up=up, **vars(policies)),
+            lambda:Mix(loop, token, types, down=down, up=up, **policies._asdict()),
             local_addr=(udp.addr, udp.port)
         )
     )
