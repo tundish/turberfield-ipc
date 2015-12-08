@@ -111,11 +111,8 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
                 typ = policies[option]
  
                 if issubclass(typ, Pooled):
-                    print(list(path), option)
                     others = [Flow.inspect(i) for i in Flow.find(path, application="*", policy=option)]
-                    print(others)
                     obj = typ.allocate(others=others)
-                    print(vars(obj))
                 else:
                     obj = typ()
                 flow = flow._replace(policy=option, suffix=".json")

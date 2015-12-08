@@ -54,7 +54,7 @@ def match_policy(token, policy:Policy):
     for flow in flows:
         matched = []
         for p in policies:
-            matched.append(next(Flow.find(token, policy=p), None))
+            matched.append(next(Flow.find(token, application=token.application, policy=p), None))
         if all(matched):
             return matched
     return None
