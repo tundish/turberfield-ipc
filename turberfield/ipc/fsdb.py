@@ -111,13 +111,17 @@ def create_from_resource(path:Resource, poa:list, role:list, routing:list, prefi
                 typ = policies[option]
  
                 if issubclass(typ, Pooled):
-                    others = [Flow.inspect(i) for i in Flow.find(path, policy=option)]
+                    print(list(path), option)
+                    others = [Flow.inspect(i) for i in Flow.find(path, application="*", policy=option)]
+                    print(others)
                     obj = typ.allocate(others=others)
+                    print(vars(obj))
                 else:
                     obj = typ()
                 flow = flow._replace(policy=option, suffix=".json")
                 with open(os.path.join(*flow[:-1]) + flow.suffix, 'w') as record:
                     record.write(obj.__json__())
+                    record.flush()
 
             except KeyError:
                 warnings.warn("No policy found for '{}'.".format(option))
@@ -140,7 +144,12 @@ def find_by_resource(context:Resource, application=None, policy=None):
         policy or context.policy or "*",
         context.suffix or ".json"
     )
-    p = pathlib.Path(*query[0:5])
+    if application in (None, "*"):
+        p = pathlib.Path(*(i for i in query[0:4]))
+        glob = p.glob(os.path.join("*", query.flow, query.policy + query.suffix))
+    else:
+        p = pathlib.Path(*query[0:5])
+        glob = p.glob(os.path.join(query.flow, query.policy + query.suffix))
     return (r for t, r in sorted((
         (i.stat().st_mtime_ns, Resource(
             context.root,
@@ -151,7 +160,7 @@ def find_by_resource(context:Resource, application=None, policy=None):
             os.path.splitext(i.name)[0],
             suffix=i.suffix)
         )
-        for i in p.glob(os.path.join(query.flow, query.policy + query.suffix))),
+        for i in glob),
         reverse=True)
     )
 
