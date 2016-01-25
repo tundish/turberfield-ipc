@@ -58,10 +58,13 @@ class Wheelbarrow(Assembly):
                     Wheelbarrow.Rim(**next(objs)),
                     Wheelbarrow.Tyre(**next(objs))
                 )
-        except StopIteration:
-            pass
-        #except Exception as e:
-        #    print(e)
+            while True:
+                self.handles.append(
+                    Wheelbarrow.Handle(
+                        length=next(objs).get("length", None),
+                        grip=Wheelbarrow.Grip(**next(objs))
+                    )
+                )
         finally:
             return self
 
@@ -143,6 +146,8 @@ class AssemblyTester(unittest.TestCase):
         rv = next(load(data, types=types, loader=rson.loads), None)
         self.assertIsInstance(rv, Wheelbarrow)
         self.assertEqual(45, rv.bucket.capacity)
+        self.assertEqual(30, rv.wheel.tyre.pressure)
+        self.assertEqual("green", rv.handles[1].grip.colour)
 
     def test_multiple_assemblies(self):
         data = textwrap.dedent("""
