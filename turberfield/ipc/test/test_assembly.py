@@ -36,7 +36,7 @@ import rson
 class Assembly:
 
     @staticmethod
-    def elements(obj, name=None):
+    def elements(obj, names=[]):
         try:
             data = obj._asdict()
         except (AttributeError, TypeError):
@@ -46,16 +46,16 @@ class Assembly:
                 if isinstance(obj, list):
                     for item in obj:
                         yield from Assembly.elements(
-                            item, name=name
+                            item, names=names
                         )
-                        return
+                    return
                 else:
-                    yield (name, obj)
+                    yield (".".join(names), obj)
                     return
 
-        for key, val in data.items():
+        for key, val in sorted(data.items()):
             yield from Assembly.elements(
-                val, name=key
+                val, names=names[:] + [key]
             )
 
 
