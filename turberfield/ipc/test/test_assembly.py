@@ -26,12 +26,38 @@ import textwrap
 import unittest
 import warnings
 
-from turberfield.ipc.assembly import Assembly
+#from turberfield.ipc.assembly import Assembly
 import turberfield.ipc.message
 import turberfield.ipc.types
 from turberfield.utils.misc import type_dict
 
 import rson
+
+class Assembly:
+
+    @staticmethod
+    def elements(obj, name=None):
+        try:
+            data = obj._asdict()
+        except (AttributeError, TypeError):
+            try:
+                data = vars(obj)
+            except TypeError:
+                if isinstance(obj, list):
+                    for item in obj:
+                        yield from Assembly.elements(
+                            item, name=name
+                        )
+                        return
+                else:
+                    yield (name, obj)
+                    return
+
+        for key, val in data.items():
+            yield from Assembly.elements(
+                val, name=key
+            )
+
 
 class Wheelbarrow(Assembly):
 
@@ -46,6 +72,7 @@ class Wheelbarrow(Assembly):
         self.bucket = bucket
         self.wheel = wheel
         self.handles = handles
+
 
     def feed(self, *args):
         objs = iter(args)
@@ -148,6 +175,12 @@ class AssemblyTester(unittest.TestCase):
         self.assertEqual(45, rv.bucket.capacity)
         self.assertEqual(30, rv.wheel.tyre.pressure)
         self.assertEqual("green", rv.handles[1].grip.colour)
+        print(*list(rv.elements(rv)), sep="\n")
+
+        def default(obj):
+            return list(dict(obj.elements))
+
+        #print(json.dumps(rv, default=default))
 
     def test_multiple_assemblies(self):
         data = textwrap.dedent("""
