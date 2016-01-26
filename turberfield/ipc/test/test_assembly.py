@@ -36,7 +36,7 @@ import rson
 class Assembly:
 
     @staticmethod
-    def elements(obj, names=[]):
+    def elements(obj, names=[], verbose=True):
         try:
             data = obj._asdict()
         except (AttributeError, TypeError):
@@ -48,10 +48,11 @@ class Assembly:
                         yield from Assembly.elements(
                             item, names=names
                         )
-                    return
-                else:
+                elif verbose:
                     yield (".".join(names), obj)
-                    return
+                else:
+                    yield (names[-1], obj)
+                return
 
         for key, val in sorted(data.items()):
             yield from Assembly.elements(
@@ -178,9 +179,9 @@ class AssemblyTester(unittest.TestCase):
         print(*list(rv.elements(rv)), sep="\n")
 
         def default(obj):
-            return list(dict(obj.elements))
+            return list(obj.elements(obj))
 
-        #print(json.dumps(rv, default=default))
+        print(json.dumps(rv, default=default))
 
     def test_multiple_assemblies(self):
         data = textwrap.dedent("""
