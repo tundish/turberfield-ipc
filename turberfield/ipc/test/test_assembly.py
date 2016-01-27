@@ -18,6 +18,8 @@
 
 
 from collections import namedtuple
+from collections import OrderedDict
+from inspect import getmembers
 import itertools
 import json
 import os.path
@@ -37,6 +39,13 @@ class Assembly:
 
     @staticmethod
     def elements(obj, names=[], verbose=True):
+        rv = OrderedDict([
+            ("_type", ".".join((dict(getmembers(obj)).get(
+                "__module__",
+                type(obj).__name__
+            ),
+            obj.__class__.__name__))),
+        ])
         try:
             data = obj._asdict()
         except (AttributeError, TypeError):
@@ -54,7 +63,8 @@ class Assembly:
                     yield (names[-1], obj)
                 return
 
-        for key, val in sorted(data.items()):
+        rv.update(data)
+        for key, val in sorted(rv.items()):
             yield from Assembly.elements(
                 val, names=names[:] + [key]
             )
