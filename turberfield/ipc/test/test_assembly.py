@@ -38,7 +38,7 @@ import rson
 class Assembly:
 
     @staticmethod
-    def elements(obj, names=[], verbose=True):
+    def elements(obj, names=[], verbose=False):
         rv = OrderedDict([
             ("_type", ".".join((dict(getmembers(obj)).get(
                 "__module__",
@@ -58,16 +58,19 @@ class Assembly:
                             item, names=names
                         )
                 elif verbose:
-                    yield (".".join(names), obj)
+                    yield {".".join(names), obj}
                 else:
-                    yield (names[-1], obj)
+                    yield {names[-1]: obj}
                 return
 
         rv.update(data)
         for key, val in sorted(rv.items()):
-            yield from Assembly.elements(
+            items = list(Assembly.elements(
                 val, names=names[:] + [key]
-            )
+            ))
+            for i in items:
+                yield i
+            
 
 
 class Wheelbarrow(Assembly):
@@ -136,8 +139,28 @@ class AssemblyTester(unittest.TestCase):
         {
         length: 15,
         colour: green
-        }
-        """)
+        }""")
+        dota = textwrap.dedent("""[
+        ["_type", "ipc.test.test_assembly.Wheelbarrow"],
+        ["_type", "ipc.test.test_assembly.Bucket"],
+        ["capacity", 45],
+        ["_type", "ipc.test.test_assembly.Handle"],
+        ["_type", "ipc.test.test_assembly.Grip"],
+        ["colour", "green"],
+        ["length", 15],
+        ["length", 80],
+        ["_type", "ipc.test.test_assembly.Handle"],
+        ["_type", "ipc.test.test_assembly.Grip"],
+        ["colour", "green"],
+        ["length", 15],
+        ["length", 80],
+        ["_type", "ipc.test.test_assembly.Wheel"],
+        ["_type", "ipc.test.test_assembly.Rim"],
+        ["dia", 40],
+        ["_type", "ipc.test.test_assembly.Tyre"],
+        ["dia", 40],
+        ["pressure", 30]
+        ]""")
 
         def load(data, types={}, loader=json.loads):
             rv = None
