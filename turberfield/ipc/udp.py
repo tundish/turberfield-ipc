@@ -22,12 +22,11 @@ import functools
 import warnings
 
 from turberfield.ipc.flow import Flow
-from turberfield.ipc.message import dumps
-from turberfield.ipc.message import loads
 from turberfield.ipc.netstrings import dumpb
 from turberfield.ipc.netstrings import loadb
 from turberfield.ipc.node import TakesPolicy
 
+from turberfield.utils.assembly import Assembly
 
 class UDPAdapter(asyncio.DatagramProtocol):
 
@@ -55,7 +54,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         if packet is None:
             return (None, None)
 
-        msg = loads(packet, types=self.types)
+        msg = Assembly.loads(packet)
         poa, msg = self.hop(self.token, msg, policy="udp")
         if poa is not None:
             remote_addr = (poa.addr, poa.port)
@@ -109,7 +108,7 @@ class UDPService(UDPAdapter, TakesPolicy):
 
                 if msg is not None:
                     remote_addr = (poa.addr, poa.port)
-                    data = "\n".join(dumps(msg))
+                    data = Assembly.dumps(msg)
                     packet = dumpb(data)
                     self.transport.sendto(packet, remote_addr)
                 else:

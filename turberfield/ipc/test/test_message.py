@@ -26,7 +26,8 @@ import warnings
 from turberfield.ipc.fsdb import token
 import turberfield.ipc.message
 import turberfield.ipc.types
-from turberfield.utils.misc import type_dict
+
+from turberfield.utils.assembly import Assembly
 
 
 class MessageTester(unittest.TestCase):
@@ -43,7 +44,7 @@ class MessageTester(unittest.TestCase):
         hop: 0
         }
         """)
-        msg = turberfield.ipc.message.loads(data, types=(type_dict(turberfield.ipc.message.Header)))
+        msg = Assembly.loads(data)
         self.assertIsInstance(msg, turberfield.ipc.message.Message)
         self.assertIsInstance(msg.header, turberfield.ipc.message.Header)
         self.assertIsInstance(msg.header.src, turberfield.ipc.types.Address)
@@ -68,7 +69,7 @@ class MessageTester(unittest.TestCase):
         """)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            msg = turberfield.ipc.message.loads(data)
+            msg = Assembly.loads(data)
             self.assertEqual(1, len(w))
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))
@@ -89,7 +90,7 @@ class MessageTester(unittest.TestCase):
         """)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            msg = turberfield.ipc.message.loads(data)
+            msg = Assembly.loads(data)
             self.assertEqual(2, len(w))
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))

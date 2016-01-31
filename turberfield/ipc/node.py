@@ -21,7 +21,7 @@ import logging
 import warnings
 
 from turberfield.ipc.flow import Flow
-from turberfield.ipc.message import registry
+from turberfield.utils.assembly import Assembly
 
 __doc__ = """
 
@@ -59,7 +59,7 @@ def match_policy(token, policy:Policy):
             return matched
     return None
 
-def create_udp_node(loop, token, down, up, types=registry):
+def create_udp_node(loop, token, down, upy):
     """
     Creates a node which uses UDP for inter-application messaging
 
@@ -67,6 +67,7 @@ def create_udp_node(loop, token, down, up, types=registry):
     assert loop.__class__.__name__.endswith("SelectorEventLoop")
  
     services = []
+    types = Assembly.register(Policy)
     policies = Policy(poa=["udp"], role=[], routing=["application"])
     refs = match_policy(token, policies) or Flow.create(token, **policies._asdict())
     for ref in refs:
