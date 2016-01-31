@@ -18,6 +18,8 @@
 
 from collections import namedtuple
 
+from turberfield.utils.assembly import Assembly
+
 Address = namedtuple(
     "Address",
     ["namespace", "user", "service", "application"]
@@ -37,3 +39,4 @@ A semantically hierarchical address for distributed networking.
 
 """.format(Address.__doc__)
 
+Assembly.register(Address)
