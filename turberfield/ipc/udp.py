@@ -58,7 +58,7 @@ class UDPAdapter(asyncio.DatagramProtocol):
         poa, msg = self.hop(self.token, msg, policy="udp")
         if poa is not None:
             remote_addr = (poa.addr, poa.port)
-            data = "\n".join(dumps(msg))
+            data = Assembly.dumps(msg)
             packet = dumpb(data)
             self.transport.sendto(packet, remote_addr)
         return (poa, msg)

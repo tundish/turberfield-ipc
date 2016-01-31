@@ -59,7 +59,7 @@ def match_policy(token, policy:Policy):
             return matched
     return None
 
-def create_udp_node(loop, token, down, upy):
+def create_udp_node(loop, token, down, up):
     """
     Creates a node which uses UDP for inter-application messaging
 
