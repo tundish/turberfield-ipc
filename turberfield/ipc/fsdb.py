@@ -54,7 +54,7 @@ def references_by_policy(items):
         {k: list(v) for k, v in itertools.groupby(items, key=operator.attrgetter("policy"))}
     )
 
-def token(connect:str, appName:str):
+def token(connect:str, serviceName:str, appName:str, userName:str=""):
     """
     Generates a token for use with the IPC framework.
 
@@ -75,12 +75,12 @@ def token(connect:str, appName:str):
     else:
         root = str(path)
 
-    user = getpass.getuser()
+    user = userName or getpass.getuser()
     rv = Resource(
         root=root,
         namespace="turberfield",
         user=user,
-        service="demo",
+        service=serviceName,
         application=appName,
         flow=None,
         policy=None,

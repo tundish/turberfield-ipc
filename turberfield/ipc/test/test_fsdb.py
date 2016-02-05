@@ -56,7 +56,11 @@ class FlowTests(unittest.TestCase):
 
     def test_token_file_db(self):
         app = "addisonarches.web"
-        rv = token("file://{}".format(self.root.name), app)
+        rv = token(
+            "file://{}".format(self.root.name),
+            "test",
+            app
+        )
         self.assertIsInstance(rv, Resource)
         self.assertEqual(self.root.name, rv.root)
         self.assertEqual(app, rv.application)
@@ -65,14 +69,22 @@ class FlowTests(unittest.TestCase):
     def test_token_other_db(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            rv = token("http://{}".format(self.root.name), "addisonarches.web")
+            rv = token(
+                "http://{}".format(self.root.name),
+                "test",
+                "addisonarches.web"
+            )
             self.assertIs(None, rv)
             self.assertTrue(
                 issubclass(w[-1].category, UserWarning))
             self.assertIn("file-based", str(w[-1].message))
 
     def test_find_flow_empty(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
         self.assertIs(None, tok.flow)
         rv = list(Flow.find(tok))
         self.assertFalse(rv)
@@ -86,7 +98,11 @@ class FlowTests(unittest.TestCase):
         self.assertFalse(results)
         
     def test_create_policy(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
         self.assertIs(None, tok.flow)
         rv = list(Flow.find(tok))
         self.assertFalse(rv)
@@ -104,7 +120,11 @@ class FlowTests(unittest.TestCase):
         self.assertIsInstance(udp.port, int)
         
     def test_create_routing(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
 
         refs = list(Flow.create(tok, poa=["udp"], role=[], routing=["application"]))
         features = references_by_type(refs)
@@ -132,7 +152,11 @@ class FlowTests(unittest.TestCase):
     def test_route_inspection_use_case(self):
         self.test_create_routing()
 
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
         search = ((i, Flow.inspect(i)) for i in Flow.find(tok, policy="application"))
         query = (
             ref
@@ -144,7 +168,11 @@ class FlowTests(unittest.TestCase):
 
     @unittest.skip("Progressively slowing test. Subtest takes ~1sec at n == 500.") 
     def test_pool_allocation(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
 
         ports = range(49152, 65536)
         for n, p in enumerate(ports):
@@ -155,7 +183,11 @@ class FlowTests(unittest.TestCase):
                 self.assertEqual(n + 1, len(alloc))
         
     def test_create_policy_unregistered(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
         self.assertIs(None, tok.flow)
         rv = next(Flow.find(tok), None)
         self.assertIs(None, rv)
@@ -169,7 +201,11 @@ class FlowTests(unittest.TestCase):
             self.assertIn("No policy", str(w[-1].message))
         
     def test_find_application(self):
-        tok = token("file://{}".format(self.root.name), "addisonarches.web")
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            "addisonarches.web"
+        )
         self.assertIs(None, tok.flow)
         results = list(Flow.find(tok, application="addisonarches.game"))
         self.assertFalse(results)

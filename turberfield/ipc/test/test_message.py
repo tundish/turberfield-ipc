@@ -170,7 +170,11 @@ class AddressingTester(unittest.TestCase):
 
     def test_address_no_via(self):
         app = "addisonarches.web"
-        tok = token("file://{}".format(self.root.name), app)
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            app
+        )
         msg = turberfield.ipc.message.parcel(tok, {"text": "Hello World!"})
         self.assertEqual(app, msg.header.src.application)
         self.assertEqual(msg.header.src, msg.header.dst)
@@ -178,7 +182,11 @@ class AddressingTester(unittest.TestCase):
 
     def test_reply(self):
         app = "addisonarches.web"
-        tok = token("file://{}".format(self.root.name), app)
+        tok = token(
+            "file://{}".format(self.root.name),
+            "test",
+            app
+        )
         msg = turberfield.ipc.message.parcel(tok, {"text": "Hello World!"})
         reply = turberfield.ipc.message.reply(msg.header, {"text": "Goodbye World!"})
         self.assertEqual(msg.header.id, reply.header.id)
