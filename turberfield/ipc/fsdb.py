@@ -61,6 +61,7 @@ def token(connect:str, serviceName:str, appName:str, userName:str=""):
     :param connect: A connection string in the form of a URL.
                     Just now this must be a file path to a user-writeable directory, eg:
                     'file:///home/alice/.turberfield'.
+    :param serviceName: The name of a network of services.
     :param appName: The name of your application.
 
     """

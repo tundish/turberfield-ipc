@@ -29,29 +29,18 @@ import turberfield.ipc.types
 from turberfield.utils.assembly import Assembly
 
 __doc__ = """
-To customise the way your classes are loaded from a received message, you must register them
-with this generator:
-
-* turberfield.ipc.message.load_
-
-and optionally with:
-
-* turberfield.ipc.message.dumps_
-* turberfield.ipc.message.replace_
+To enable your objects to go into a message, you must register
+their classes with `turberfield.utils.assembly.Assembly`.
 
 For example, here's how the :py:mod:`message <turberfield.ipc.message>` module defines its
 own `Alert` class::
 
     Alert = namedtuple("Alert", ["ts", "text"])
 
-And this is how it customises the deserialising of these objects so
-that its `ts` attribute is itself loaded as Python object::
+And this is how it registers these objects so they can be dumped into
+a message and loaded back::
 
-    @load.register(Alert)
-    def load_alert(obj):
-        yield obj._replace(
-            ts=datetime.strptime(obj.ts, "%Y-%m-%d %H:%M:%S"),
-        )
+    Assembly.register(Alert)
 
 """
 
@@ -100,10 +89,10 @@ def parcel(token, *args, dst=None, via=None, hMax=3):
 
 def reply(header, *args, dst=None, via=None, hMax=3):
     """
-    :param header: The Header object of the origin message.
+    :param header: The Header object of the original message.
     :param args: Application objects to send in the message.
     :param dst: An :py:class:`Address <turberfield.ipc.types.Address>` for the destination.
-                If `None`, will be set to the source address (ie: a loopback message).
+                If `None`, will be set to the source address.
     :param via: An :py:class:`Address <turberfield.ipc.types.Address>` to
                 pass the message on to. If `None`, the most direct route is selected.
     :param hMax: The maximum number of node hops permitted for this message.

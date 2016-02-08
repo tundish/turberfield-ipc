@@ -12,9 +12,8 @@ This package provides an Inter-Process Communications (IPC) framework.
 Requirements
 ::::::::::::
 
-Turberfield runs on Python 3.5 or later. It requires these packages:
+Turberfield runs on Python 3.5.1 or later. It requires these packages:
 
-* `rson`
 * `turberfield-utils`
 
 Usage
@@ -22,8 +21,8 @@ Usage
 
 Download and unpack the source distribution::
 
-    $ tar -xzvf turberfield-ipc-0.008.0.tar.gz
-    $ cd turberfield-ipc-0.008.0
+    $ tar -xzvf turberfield-ipc-0.013.0.tar.gz
+    $ cd turberfield-ipc-0.013.0
 
 Run the tests::
 
@@ -73,7 +72,7 @@ What's missing? *UR*!
 In either event, please leave a message on the project's `message board`_.
 
 :Author: tundish
-:Copyright: 2015 D Haynes
+:Copyright: 2016 D Haynes
 
 .. _GNU General Public License: http://www.gnu.org/licenses/gpl.html
 .. _message board: https://www.assembla.com/spaces/turberfield/messages

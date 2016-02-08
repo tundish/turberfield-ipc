@@ -61,7 +61,6 @@ setup(
             ],
     },
     install_requires=[
-        "rson>=0.9",
         "turberfield-utils>=0.21.0",
     ],
     extras_require={

@@ -76,7 +76,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = "Turberfield-IPC"
-copyright = "2015, D Haynes"
+copyright = "2016, D Haynes"
 author = "D Haynes"
 
 # The version info for the project you're documenting, acts as replacement for
