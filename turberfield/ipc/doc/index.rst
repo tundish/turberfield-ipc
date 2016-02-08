@@ -16,7 +16,7 @@ Turberfield Inter-Process Communication library
 :::::::::::::::::::::::::::::::::::::::::::::::
 
 :Author: tundish
-:Copyright: 2015 D Haynes
+:Copyright: 2016 D Haynes
 :Licence: `GNU General Public License`_
 
 |
