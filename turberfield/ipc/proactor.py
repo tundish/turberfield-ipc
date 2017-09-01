@@ -2,8 +2,7 @@ import configparser
 import multiprocessing
 import signal
 
-def worker(config, token=None):
-    pass
+from turberfield.utils.misc import config_parser
 
-if __name__ == __main__:
+def worker(config, token=None):
     pass

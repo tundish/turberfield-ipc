@@ -61,7 +61,7 @@ setup(
             ],
     },
     install_requires=[
-        "turberfield-utils>=0.21.0",
+        "turberfield-utils>=0.30.0",
     ],
     extras_require={
         "docbuild": [
