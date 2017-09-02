@@ -18,7 +18,9 @@
 
 import argparse
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import logging
+import os
 import signal
 import sys
 
@@ -29,21 +31,33 @@ from turberfield.ipc.cli import add_config_options
 from turberfield.utils.misc import config_parser
 from turberfield.utils.misc import log_setup
 
-"""
+__doc__ = """
 Prototype initiator.
 
 """
 
 def main(args):
-    loop = asyncio.SelectorEventLoop()
-    asyncio.set_event_loop(loop)
-
+    rv = 0
+    loop = asyncio.get_event_loop()
     log = logging.getLogger(log_setup(args, loop=loop))
     log.info("Reading config...")
     cfg = config_parser()
-    cfg.read_file(args.config)
+
+    try:
+        loop.run_until_complete(
+            asyncio.wait_for(
+                loop.run_in_executor(None, cfg.read_file, args.config),
+                timeout=3
+            )
+        )
+    except asyncio.TimeoutError:
+        log.error("Timed out while reading config.")
+        loop.stop()
+        loop.close()
+        os._exit(1)
+
     print(cfg)
-    return 0
+    return rv
 
 def run():
     p = add_common_options(
