@@ -45,10 +45,18 @@ def add_common_options(parser):
         help="Set a file path for log output")
     return parser
 
-def add_config_options(parser):
+def add_proactor_options(parser):
     parser.add_argument(
         "--config", nargs="?", default=sys.stdin, type=argparse.FileType("r"),
         help="Supply a configuration."
+    )
+    parser.add_argument(
+        "--uuid", required=True,
+        help="Specify the uuid of the processor"
+    )
+    parser.add_argument(
+        "--port", type=int, required=True,
+        help="Specify the port number to the processor"
     )
     return parser
 

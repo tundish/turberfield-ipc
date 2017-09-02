@@ -18,23 +18,47 @@
 
 import argparse
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import signal
 import sys
+import uuid
+
+import aiohttp.web
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
 from turberfield.ipc.cli import add_common_options
-from turberfield.ipc.cli import add_config_options
+from turberfield.ipc.cli import add_proactor_options
 from turberfield.utils.misc import config_parser
 from turberfield.utils.misc import log_setup
 
 __doc__ = """
-Prototype initiator.
 
-"""
+~/py3.5/bin/python -m turberfield.ipc.demo.initiator \\
+--uuid={0.hex} --port=8080 \\
+--config=turberfield/ipc/demo/proactor.cfg
+
+""".format(uuid.uuid4())
+
+def create_processor(guid, port):
+    args = [
+        sys.executable,
+        "-m", "turberfield.ipc.demo.initiator",
+        "--uuid", guid,
+        "--port", port,
+    ]
+    log.info("Job: {0}".format(args))
+    try:
+        worker = subprocess.Popen(
+            args,
+            #cwd=app.config.get("args")["output"],
+            shell=False
+        )
+    except OSError as e:
+        log.error(e)
+    else:
+        log.info("Launched worker {0.pid}".format(worker))
 
 def main(args):
     rv = 0
@@ -55,14 +79,30 @@ def main(args):
         loop.stop()
         loop.close()
         os._exit(1)
+    else:
+        app = aiohttp.web.Application()
+        handler = app.make_handler()
+        f = loop.create_server(handler, "0.0.0.0", args.port)
+        srv = loop.run_until_complete(f)
+        log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            srv.close()
+            loop.run_until_complete(srv.wait_closed())
+            loop.run_until_complete(app.shutdown())
+            loop.run_until_complete(handler.shutdown(60.0))
+            loop.run_until_complete(app.cleanup())
+        loop.close()
 
-    print(cfg)
     return rv
 
 def run():
     p = add_common_options(
         add_async_options(
-            add_config_options(
+            add_proactor_options(
                 argparse.ArgumentParser(
                     __doc__,
                     fromfile_prefix_chars="@"
