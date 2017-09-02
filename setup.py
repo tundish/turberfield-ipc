@@ -64,6 +64,9 @@ setup(
         "turberfield-utils>=0.30.0",
     ],
     extras_require={
+        "proactor": [
+            "pyjwt>=1.5.2",
+        ],
         "docbuild": [
             "babel<=1.3,>2.0",
             "sphinx-argparse>=0.1.15",
