@@ -67,6 +67,9 @@ setup(
         "proactor": [
             "pyjwt>=1.5.2",
         ],
+        "demo": [
+            "aiohttp>=2.2.0",
+        ],
         "docbuild": [
             "babel<=1.3,>2.0",
             "sphinx-argparse>=0.1.15",
