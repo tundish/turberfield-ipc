@@ -24,6 +24,7 @@ import sys
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.cli import add_ipc_options
 from turberfield.ipc.fsdb import token
 from turberfield.ipc.node import create_udp_node
 
@@ -83,6 +84,7 @@ def run():
         fromfile_prefix_chars="@"
     )
     p = add_common_options(p)
+    p = add_ipc_options(p)
     args = p.parse_args()
     if args.version:
         sys.stderr.write(__version__ + "\n")

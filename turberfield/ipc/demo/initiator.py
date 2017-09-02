@@ -21,7 +21,9 @@ import signal
 import sys
 
 from turberfield.ipc import __version__
+from turberfield.ipc.cli import add_async_options
 from turberfield.ipc.cli import add_common_options
+from turberfield.ipc.cli import add_config_options
 from turberfield.utils.misc import config_parser
 from turberfield.utils.misc import log_setup
 
@@ -31,12 +33,21 @@ Prototype initiator.
 """
 
 def main(args):
+    cfg = config_parser()
+    cfg.read_file(args.config)
+    print(cfg)
     return 0
 
 def run():
-    p = argparse.ArgumentParser(
-        __doc__,
-        fromfile_prefix_chars="@"
+    p = add_common_options(
+        add_async_options(
+            add_config_options(
+                argparse.ArgumentParser(
+                    __doc__,
+                    fromfile_prefix_chars="@"
+                )
+            )
+        )
     )
     args = p.parse_args()
     if args.version:
