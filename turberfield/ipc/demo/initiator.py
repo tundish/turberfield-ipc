@@ -17,6 +17,8 @@
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import asyncio
+import logging
 import signal
 import sys
 
@@ -33,6 +35,11 @@ Prototype initiator.
 """
 
 def main(args):
+    loop = asyncio.SelectorEventLoop()
+    asyncio.set_event_loop(loop)
+
+    log = logging.getLogger(log_setup(args, loop=loop))
+    log.info("Reading config...")
     cfg = config_parser()
     cfg.read_file(args.config)
     print(cfg)
