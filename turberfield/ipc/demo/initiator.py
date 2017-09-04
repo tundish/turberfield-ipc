@@ -18,12 +18,14 @@
 
 import argparse
 import asyncio
+from collections import OrderedDict
 import logging
 import os
 import sys
 import uuid
 
 import aiohttp.web
+from multidict import MultiDict
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
@@ -59,6 +61,66 @@ def create_processor(guid, port):
     else:
         log.info("Launched worker {0.pid}".format(worker))
 
+class Initiator:
+
+    @staticmethod
+    def config(section):
+        return {}
+
+class Processor:
+
+    @staticmethod
+    def config(section):
+        return {}
+
+class Services:
+
+    @classmethod
+    def setup_routes(cls, app):
+        app.router.add_get("/", cls.config)
+        app.router.add_get("/task", cls.task)
+        app.router.add_get("/task/{task}", cls.task)
+        app.router.add_post("/create", cls.create)
+
+    async def creator(app):
+        print("Running")
+        try:
+            while True:
+                job = await app.queue.get()
+                print(job)
+        except asyncio.CancelledError:
+            pass
+
+    @staticmethod
+    async def start_background_tasks(app):
+        app.tasks["creator"] = app.loop.create_task(creator(app))
+        print(app.tasks)
+
+    @staticmethod
+    async def cleanup_background_tasks(app):
+        for task in app.tasks.values():
+            task.cancel()
+            await task
+
+    async def config(request):
+        cfg = request.app.cfg
+        rv = {s: dict(cfg.items(s)) for s in request.app.cfg.sections()}
+        return aiohttp.web.json_response(rv)
+
+    async def create(request):
+        data = await request.post()
+        await request.app.queue.put(data)
+        root = ""  # Absolute host path
+        rv = aiohttp.web.HTTPCreated(
+            headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
+        )
+        return rv
+
+    async def task(request):
+        task = request.match_info.get("task")
+        rv = request.app.tasks.get(task, request.app.tasks)
+        return aiohttp.web.json_response(rv)
+
 def main(args):
     rv = 0
     loop = asyncio.get_event_loop()
@@ -80,6 +142,12 @@ def main(args):
         os._exit(1)
     else:
         app = aiohttp.web.Application()
+        app.cfg = cfg
+        app.tasks = OrderedDict([])
+        app.queue = asyncio.Queue(loop=loop)
+        app.on_startup.append(Services.start_background_tasks)
+        app.on_cleanup.append(Services.cleanup_background_tasks)
+        Services.setup_routes(app)
         handler = app.make_handler()
         f = loop.create_server(handler, "0.0.0.0", args.port)
         srv = loop.run_until_complete(f)
