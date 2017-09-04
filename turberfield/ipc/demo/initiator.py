@@ -93,7 +93,7 @@ class Services:
 
     @staticmethod
     async def start_background_tasks(app):
-        app.tasks["creator"] = app.loop.create_task(creator(app))
+        app.tasks["creator"] = app.loop.create_task(Services.creator(app))
         print(app.tasks)
 
     @staticmethod
@@ -145,14 +145,15 @@ def main(args):
         app.cfg = cfg
         app.tasks = OrderedDict([])
         app.queue = asyncio.Queue(loop=loop)
-        app.on_startup.append(Services.start_background_tasks)
-        app.on_cleanup.append(Services.cleanup_background_tasks)
+        #app.on_startup.append(Services.start_background_tasks)
+        #app.on_cleanup.append(Services.cleanup_background_tasks)
         Services.setup_routes(app)
         handler = app.make_handler()
         f = loop.create_server(handler, "0.0.0.0", args.port)
         srv = loop.run_until_complete(f)
         log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
         try:
+            #aiohttp.web.run_app(app)
             loop.run_forever()
         except KeyboardInterrupt:
             pass
