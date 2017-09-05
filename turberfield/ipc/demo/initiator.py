@@ -18,9 +18,12 @@
 
 import argparse
 import asyncio
+from collections import namedtuple
 from collections import OrderedDict
+import io
 import logging
 import os
+import subprocess
 import sys
 import uuid
 
@@ -42,24 +45,36 @@ __doc__ = """
 
 """.format(uuid.uuid4())
 
-def create_processor(guid, port):
+Worker = namedtuple("Worker", ["guid", "port", "session", "module", "process"])
+
+async def worker(cfg, guid=None, loop=None):
+    loop = loop or asyncio.get_event_loop()
+    log = logging.getLogger("")
+    guid = guid or uuid.uuid4().hex
+    port = cfg.getint("default", "port", fallback=8081)
     args = [
         sys.executable,
         "-m", "turberfield.ipc.demo.initiator",
         "--uuid", guid,
-        "--port", port,
+        "--port", str(port),
     ]
-    log.info("Job: {0}".format(args))
-    try:
-        worker = subprocess.Popen(
-            args,
-            #cwd=app.config.get("args")["output"],
-            shell=False
-        )
-    except OSError as e:
-        log.error(e)
-    else:
-        log.info("Launched worker {0.pid}".format(worker))
+    proc = await asyncio.create_subprocess_exec(
+      *args, stdin=subprocess.PIPE, loop=loop
+    )
+
+    data = io.StringIO()
+    cfg.write(data)
+    proc.stdin.write(data.getvalue().encode("utf-8"))
+    await proc.stdin.drain()
+    proc.stdin.close()
+    #task = loop.create_task(
+    #    asyncio.wait_for(
+    #        proc.wait()
+    #        timeout=timeout
+    #    )
+    #)
+    return Worker(guid, port, None, None, proc)
+
 
 class Initiator:
 
@@ -77,30 +92,24 @@ class Services:
 
     @classmethod
     def setup_routes(cls, app):
-        app.router.add_get("/", cls.config)
+        app.router.add_get("/config", cls.config)
         app.router.add_get("/task", cls.task)
         app.router.add_get("/task/{task}", cls.task)
         app.router.add_post("/create", cls.create)
 
-    async def creator(app):
+    async def job_runner(app):
         print("Running")
         try:
             while True:
-                job = await app.queue.get()
-                print(job)
+                guid = await app.queue.get()
+                print(guid)
+                task = app.tasks.get(guid)
+                print(task)
+                if task:
+                    rv = await task
+                    print(rv)
         except asyncio.CancelledError:
             pass
-
-    @staticmethod
-    async def start_background_tasks(app):
-        app.tasks["creator"] = app.loop.create_task(Services.creator(app))
-        print(app.tasks)
-
-    @staticmethod
-    async def cleanup_background_tasks(app):
-        for task in app.tasks.values():
-            task.cancel()
-            await task
 
     async def config(request):
         cfg = request.app.cfg
@@ -108,8 +117,12 @@ class Services:
         return aiohttp.web.json_response(rv)
 
     async def create(request):
+        app = request.app
         data = await request.post()
-        await request.app.queue.put(data)
+        guid = uuid.uuid4().hex
+        w = worker(app.cfg, guid=guid)
+        app.tasks[guid] = w
+        await app.queue.put(guid)
         root = ""  # Absolute host path
         rv = aiohttp.web.HTTPCreated(
             headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
@@ -119,7 +132,7 @@ class Services:
     async def task(request):
         task = request.match_info.get("task")
         rv = request.app.tasks.get(task, request.app.tasks)
-        return aiohttp.web.json_response(rv)
+        return aiohttp.web.json_response(str(rv))
 
 def main(args):
     rv = 0
@@ -145,15 +158,13 @@ def main(args):
         app.cfg = cfg
         app.tasks = OrderedDict([])
         app.queue = asyncio.Queue(loop=loop)
-        #app.on_startup.append(Services.start_background_tasks)
-        #app.on_cleanup.append(Services.cleanup_background_tasks)
         Services.setup_routes(app)
         handler = app.make_handler()
         f = loop.create_server(handler, "0.0.0.0", args.port)
         srv = loop.run_until_complete(f)
         log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
         try:
-            #aiohttp.web.run_app(app)
+            loop.create_task(Services.job_runner(app))
             loop.run_forever()
         except KeyboardInterrupt:
             pass
