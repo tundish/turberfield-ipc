@@ -23,6 +23,10 @@ from collections import OrderedDict
 import io
 import logging
 import os
+try:
+    from os import PathLike
+except ImportError:
+    PathLike = object
 import subprocess
 import sys
 import uuid
@@ -47,12 +51,10 @@ __doc__ = """
 
 Worker = namedtuple("Worker", ["guid", "port", "session", "module", "process"])
 
-"""
-class LogPath(os.PathLike):
+class LogPath(PathLike):
 
     def __fspath__(self):
         return "."
-"""
 
 async def worker(cfg, guid=None, loop=None):
     loop = loop or asyncio.get_event_loop()
