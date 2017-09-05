@@ -47,6 +47,13 @@ __doc__ = """
 
 Worker = namedtuple("Worker", ["guid", "port", "session", "module", "process"])
 
+"""
+class LogPath(os.PathLike):
+
+    def __fspath__(self):
+        return "."
+"""
+
 async def worker(cfg, guid=None, loop=None):
     loop = loop or asyncio.get_event_loop()
     log = logging.getLogger("")
@@ -57,6 +64,7 @@ async def worker(cfg, guid=None, loop=None):
         "-m", "turberfield.ipc.demo.initiator",
         "--uuid", guid,
         "--port", str(port),
+        #"--log", os.path.join(root, session, progress.slot, "run.log")
     ]
     proc = await asyncio.create_subprocess_exec(
       *args, stdin=subprocess.PIPE, loop=loop
