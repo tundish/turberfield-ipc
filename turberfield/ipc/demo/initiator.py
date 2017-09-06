@@ -73,7 +73,7 @@ class Initiator:
     def __init__(self, cfg, loop=None):
         self.cfg = cfg
         self.loop = loop or asyncio.get_event_loop()
-        self.queue = asyncio.Queue(loop=loop)
+        self.queue = asyncio.Queue(loop=self.loop)
         self.tasks = OrderedDict([])
         self.loop.create_task(self.task_runner())
 
