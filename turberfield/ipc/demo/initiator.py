@@ -91,9 +91,8 @@ class Initiator:
         except asyncio.CancelledError:
             pass
 
-    async def worker(self, guid=None, loop=None):
+    async def worker(self, guid):
         log = logging.getLogger("")
-        guid = guid or uuid.uuid4().hex
         port = self.cfg.getint("default", "port", fallback=8081)
         args = [
             sys.executable,
@@ -129,6 +128,11 @@ class Initiator:
         else:
             return self.Worker(guid, None, None, None, proc)
 
+    async def launch(self, guid=None):
+        guid = guid or uuid.uuid4().hex
+        self.tasks[guid] = self.worker(guid)
+        await self.queue.put(guid)
+        return guid
 
 class Processor:
 
@@ -157,9 +161,7 @@ class Service:
 
     async def create(self, request):
         data = await request.post()
-        guid = uuid.uuid4().hex
-        self.initiator.tasks[guid] = self.initiator.worker(guid=guid)
-        await self.initiator.queue.put(guid)
+        guid = await self.initiator.launch()
         root = ""  # Absolute host path
         rv = aiohttp.web.HTTPCreated(
             headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
