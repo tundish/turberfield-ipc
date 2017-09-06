@@ -51,28 +51,47 @@ __doc__ = """
 
 """.format(uuid.uuid4())
 
-CONFIG_TIMEOUT_SEC = 3
-
 
 class LogPath(PathLike):
 
     def __fspath__(self):
         return "."
 
-class Initiator:
+class Proactor:
+
+    CONFIG_TIMEOUT_SEC = 3
+
+    def __init__(self, options, loop=None, **kwargs):
+        self.args = options
+        self.loop = loop or asyncio.get_event_loop()
+        self.cfg = config_parser(**kwargs)
+
+    @staticmethod
+    def config(section):
+        return {}
+
+    def read_config(self, fObj):
+        self.loop.run_until_complete(
+            asyncio.wait_for(
+                self.loop.run_in_executor(
+                    None, self.cfg.read_file, fObj
+                ),
+                timeout=self.CONFIG_TIMEOUT_SEC
+            )
+        )
+
+class Processor(Proactor):
+    pass
+
+class Initiator(Proactor):
 
     Worker = namedtuple(
         "Worker",
         ["guid", "port", "session", "module", "process"]
     )
 
-    @staticmethod
-    def config(section):
-        return {}
-
-    def __init__(self, cfg, loop=None):
-        self.cfg = cfg
-        self.loop = loop or asyncio.get_event_loop()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.queue = asyncio.Queue(loop=self.loop)
         self.tasks = OrderedDict([])
         self.loop.create_task(self.task_runner())
@@ -119,7 +138,7 @@ class Initiator:
 
         task = asyncio.wait_for(
             proc.wait(),
-            timeout=CONFIG_TIMEOUT_SEC + 2
+            timeout=self.CONFIG_TIMEOUT_SEC + 2
         )
         try:
             await task
@@ -133,12 +152,6 @@ class Initiator:
         self.tasks[guid] = self.worker(guid)
         await self.queue.put(guid)
         return guid
-
-class Processor:
-
-    @staticmethod
-    def config(section):
-        return {}
 
 class Service:
 
@@ -187,17 +200,12 @@ def main(args):
         )
     )
     home.mkdir(parents=True, exist_ok=True)
-    cfg = config_parser(home=str(home))
+    initiator = Initiator(args, loop=loop)
 
     # TODO: Put in Processor as class method
     log.info("Read config...")
     try:
-        loop.run_until_complete(
-            asyncio.wait_for(
-                loop.run_in_executor(None, cfg.read_file, args.config),
-                timeout=CONFIG_TIMEOUT_SEC
-            )
-        )
+        initiator.read_config(args.config)
     except asyncio.TimeoutError:
         log.error("Time out while reading config.")
         loop.stop()
@@ -205,7 +213,6 @@ def main(args):
         os._exit(1)
     else:
         app = aiohttp.web.Application()
-        initiator = Initiator(cfg, loop=loop)
         service = Service(initiator)
         service.setup_routes(app)
         handler = app.make_handler()
