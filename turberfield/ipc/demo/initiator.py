@@ -53,81 +53,37 @@ __doc__ = """
 
 CONFIG_TIMEOUT_SEC = 3
 
-Worker = namedtuple("Worker", ["guid", "port", "session", "module", "process"])
 
 class LogPath(PathLike):
 
     def __fspath__(self):
         return "."
 
-async def worker(cfg, guid=None, loop=None):
-    loop = loop or asyncio.get_event_loop()
-    log = logging.getLogger("")
-    guid = guid or uuid.uuid4().hex
-    port = cfg.getint("default", "port", fallback=8081)
-    args = [
-        sys.executable,
-        "-m", "turberfield.ipc.demo.initiator",
-        "--uuid", guid,
-        "--port", str(port),
-        #"--log", os.path.join(root, session, progress.slot, "run.log")
-    ]
-    proc = await asyncio.create_subprocess_exec(
-      *args, stdin=subprocess.PIPE, loop=loop
-    )
-    cfg.read_string(textwrap.dedent(
-    """
-    [{guid}]
-    a = 2
-    """
-    ).format(guid=guid))
-
-    data = io.StringIO()
-    cfg.write(data)
-    proc.stdin.write(data.getvalue().encode("utf-8"))
-    await proc.stdin.drain()
-    proc.stdin.close()
-
-    task = asyncio.wait_for(
-        proc.wait(),
-        timeout=CONFIG_TIMEOUT_SEC + 2
-    )
-    try:
-        await task
-    except asyncio.TimeoutError:
-        return Worker(guid, port, None, None, proc)
-    else:
-        return Worker(guid, None, None, None, proc)
-
-
 class Initiator:
 
+    Worker = namedtuple(
+        "Worker",
+        ["guid", "port", "session", "module", "process"]
+    )
+
     @staticmethod
     def config(section):
         return {}
 
-class Processor:
+    def __init__(self, cfg, loop=None):
+        self.cfg = cfg
+        self.loop = loop or asyncio.get_event_loop()
+        self.queue = asyncio.Queue(loop=loop)
+        self.tasks = OrderedDict([])
+        self.loop.create_task(self.task_runner())
 
-    @staticmethod
-    def config(section):
-        return {}
-
-class Services:
-
-    @classmethod
-    def setup_routes(cls, app):
-        app.router.add_get("/config", cls.config)
-        app.router.add_get("/task", cls.task)
-        app.router.add_get("/task/{task}", cls.task)
-        app.router.add_post("/create", cls.create)
-
-    async def job_runner(app):
+    async def task_runner(self):
         print("Running")
         try:
             while True:
-                guid = await app.queue.get()
+                guid = await self.queue.get()
                 print(guid)
-                task = app.tasks.get(guid)
+                task = self.tasks.get(guid)
                 print(task)
                 if task:
                     rv = await task
@@ -135,27 +91,84 @@ class Services:
         except asyncio.CancelledError:
             pass
 
-    async def config(request):
-        cfg = request.app.cfg
-        rv = {s: dict(cfg.items(s)) for s in request.app.cfg.sections()}
+    async def worker(self, guid=None, loop=None):
+        log = logging.getLogger("")
+        guid = guid or uuid.uuid4().hex
+        port = self.cfg.getint("default", "port", fallback=8081)
+        args = [
+            sys.executable,
+            "-m", "turberfield.ipc.demo.initiator",
+            "--uuid", guid,
+            "--port", str(port),
+            #"--log", os.path.join(root, session, progress.slot, "run.log")
+        ]
+        proc = await asyncio.create_subprocess_exec(
+          *args, stdin=subprocess.PIPE, loop=self.loop
+        )
+        self.cfg.read_string(textwrap.dedent(
+        """
+        [{guid}]
+        a = 2
+        """
+        ).format(guid=guid))
+
+        data = io.StringIO()
+        self.cfg.write(data)
+        proc.stdin.write(data.getvalue().encode("utf-8"))
+        await proc.stdin.drain()
+        proc.stdin.close()
+
+        task = asyncio.wait_for(
+            proc.wait(),
+            timeout=CONFIG_TIMEOUT_SEC + 2
+        )
+        try:
+            await task
+        except asyncio.TimeoutError:
+            return self.Worker(guid, port, None, None, proc)
+        else:
+            return self.Worker(guid, None, None, None, proc)
+
+
+class Processor:
+
+    @staticmethod
+    def config(section):
+        return {}
+
+class Service:
+
+    def __init__(self, *args, **kwargs):
+        self.initiator = next(
+            (i for i in args if isinstance(i, Initiator)),
+            None
+        )
+
+    def setup_routes(self, app):
+        app.router.add_get("/config", self.config)
+        app.router.add_get("/task", self.task)
+        app.router.add_get("/task/{task}", self.task)
+        app.router.add_post("/create", self.create)
+
+    async def config(self, request):
+        cfg = self.initiator.cfg
+        rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
         return aiohttp.web.json_response(rv)
 
-    async def create(request):
-        app = request.app
+    async def create(self, request):
         data = await request.post()
         guid = uuid.uuid4().hex
-        w = worker(app.cfg, guid=guid)
-        app.tasks[guid] = w
-        await app.queue.put(guid)
+        self.initiator.tasks[guid] = self.initiator.worker(guid=guid)
+        await self.initiator.queue.put(guid)
         root = ""  # Absolute host path
         rv = aiohttp.web.HTTPCreated(
             headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
         )
         return rv
 
-    async def task(request):
+    async def task(self, request):
         task = request.match_info.get("task")
-        rv = request.app.tasks.get(task, request.app.tasks)
+        rv = self.initiator.tasks.get(task, self.initiator.tasks)
         return aiohttp.web.json_response(str(rv))
 
 def main(args):
@@ -174,6 +187,7 @@ def main(args):
     home.mkdir(parents=True, exist_ok=True)
     cfg = config_parser(home=str(home))
 
+    # TODO: Put in Processor as class method
     log.info("Read config...")
     try:
         loop.run_until_complete(
@@ -189,16 +203,14 @@ def main(args):
         os._exit(1)
     else:
         app = aiohttp.web.Application()
-        app.cfg = cfg
-        app.tasks = OrderedDict([])
-        app.queue = asyncio.Queue(loop=loop)
-        Services.setup_routes(app)
+        initiator = Initiator(cfg, loop=loop)
+        service = Service(initiator)
+        service.setup_routes(app)
         handler = app.make_handler()
         f = loop.create_server(handler, "0.0.0.0", args.port)
         srv = loop.run_until_complete(f)
         log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
         try:
-            loop.create_task(Services.job_runner(app))
             loop.run_forever()
         except KeyboardInterrupt:
             pass
