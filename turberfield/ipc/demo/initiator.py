@@ -22,13 +22,15 @@ from collections import namedtuple
 from collections import OrderedDict
 import io
 import logging
-import os
+import os.path
 try:
     from os import PathLike
 except ImportError:
     PathLike = object
+import pathlib
 import subprocess
 import sys
+import textwrap
 import uuid
 
 import aiohttp.web
@@ -48,6 +50,8 @@ __doc__ = """
 --config=turberfield/ipc/demo/proactor.cfg
 
 """.format(uuid.uuid4())
+
+CONFIG_TIMEOUT_SEC = 3
 
 Worker = namedtuple("Worker", ["guid", "port", "session", "module", "process"])
 
@@ -71,19 +75,29 @@ async def worker(cfg, guid=None, loop=None):
     proc = await asyncio.create_subprocess_exec(
       *args, stdin=subprocess.PIPE, loop=loop
     )
+    cfg.read_string(textwrap.dedent(
+    """
+    [{guid}]
+    a = 2
+    """
+    ).format(guid=guid))
 
     data = io.StringIO()
     cfg.write(data)
     proc.stdin.write(data.getvalue().encode("utf-8"))
     await proc.stdin.drain()
     proc.stdin.close()
-    #task = loop.create_task(
-    #    asyncio.wait_for(
-    #        proc.wait()
-    #        timeout=timeout
-    #    )
-    #)
-    return Worker(guid, port, None, None, proc)
+
+    task = asyncio.wait_for(
+        proc.wait(),
+        timeout=CONFIG_TIMEOUT_SEC + 2
+    )
+    try:
+        await task
+    except asyncio.TimeoutError:
+        return Worker(guid, port, None, None, proc)
+    else:
+        return Worker(guid, None, None, None, proc)
 
 
 class Initiator:
@@ -148,18 +162,28 @@ def main(args):
     rv = 0
     loop = asyncio.get_event_loop()
     log = logging.getLogger(log_setup(args, loop=loop))
-    log.info("Reading config...")
-    cfg = config_parser()
 
+    log.info("Place defaults")
+    home = pathlib.Path(
+        os.path.abspath(
+            os.path.expanduser(
+                os.path.join("~", ".turberfield")
+            )
+        )
+    )
+    home.mkdir(parents=True, exist_ok=True)
+    cfg = config_parser(home=str(home))
+
+    log.info("Read config...")
     try:
         loop.run_until_complete(
             asyncio.wait_for(
                 loop.run_in_executor(None, cfg.read_file, args.config),
-                timeout=3
+                timeout=CONFIG_TIMEOUT_SEC
             )
         )
     except asyncio.TimeoutError:
-        log.error("Timed out while reading config.")
+        log.error("Time out while reading config.")
         loop.stop()
         loop.close()
         os._exit(1)
