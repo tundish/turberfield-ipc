@@ -51,11 +51,11 @@ def add_proactor_options(parser):
         help="Supply a configuration."
     )
     parser.add_argument(
-        "--uuid", required=True,
-        help="Specify the uuid of the processor"
+        "--guid", required=True,
+        help="Specify the guid of the processor"
     )
     parser.add_argument(
-        "--port", type=int, required=True,
+        "--port", type=int, required=False,
         help="Specify the port number to the processor"
     )
     return parser

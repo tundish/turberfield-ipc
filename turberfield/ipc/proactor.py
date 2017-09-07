@@ -69,7 +69,7 @@ class Initiator(Proactor):
         args = [
             interpreter,
             "-m", module.__name__,
-            "--uuid", guid,
+            "--guid", guid,
             "--port", str(port),
             #"--log", os.path.join(root, session, progress.slot, "run.log")
         ]

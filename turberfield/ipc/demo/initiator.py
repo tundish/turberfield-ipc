@@ -42,7 +42,7 @@ from turberfield.utils.misc import log_setup
 __doc__ = """
 
 ~/py3.5/bin/python -m turberfield.ipc.demo.initiator \\
---uuid=8d740c16d9b8419aa7417f7da6deb039 --port=8080 \\
+--guid=8d740c16d9b8419aa7417f7da6deb039 --port=8080 \\
 --config=turberfield/ipc/demo/proactor.cfg
 
 """
@@ -116,8 +116,11 @@ def main(args):
         service = Service(initiator)
         service.setup_routes(app)
         handler = app.make_handler()
-        addr = initiator.cfg.get(args.uuid, "listen_addr", fallback="0.0.0.0")
-        port = initiator.cfg.getint(args.uuid, "listen_port", fallback=args.port)
+
+        addr = initiator.cfg.get(args.guid, "listen_addr", fallback="0.0.0.0")
+        port = args.port or initiator.cfg.getint(args.guid, "listen_port")
+        initiator.cfg[args.guid]["listen_port"] = str(port)
+
         f = loop.create_server(handler, addr, port)
         srv = loop.run_until_complete(f)
         log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
