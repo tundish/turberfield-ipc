@@ -19,6 +19,8 @@
 import datetime
 import unittest
 
+import jwt
+
 def create_token(key, session=None):
      now = datetime.datetime.utcnow()
      return jwt.encode(
