@@ -18,9 +18,6 @@
 
 import argparse
 import asyncio
-from collections import namedtuple
-from collections import OrderedDict
-import io
 import logging
 import os.path
 try:
@@ -28,10 +25,7 @@ try:
 except ImportError:
     PathLike = object
 import pathlib
-import subprocess
 import sys
-import textwrap
-import uuid
 
 import aiohttp.web
 from multidict import MultiDict
@@ -40,16 +34,18 @@ from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
 from turberfield.ipc.cli import add_common_options
 from turberfield.ipc.cli import add_proactor_options
+import turberfield.ipc.demo.initiator
+from turberfield.ipc.proactor import Initiator
 from turberfield.utils.misc import config_parser
 from turberfield.utils.misc import log_setup
 
 __doc__ = """
 
 ~/py3.5/bin/python -m turberfield.ipc.demo.initiator \\
---uuid={0.hex} --port=8080 \\
+--uuid=8d740c16d9b8419aa7417f7da6deb039 --port=8080 \\
 --config=turberfield/ipc/demo/proactor.cfg
 
-""".format(uuid.uuid4())
+"""
 
 
 class LogPath(PathLike):
@@ -57,106 +53,10 @@ class LogPath(PathLike):
     def __fspath__(self):
         return "."
 
-class Proactor:
-
-    CONFIG_TIMEOUT_SEC = 3
-
-    def __init__(self, options, loop=None, **kwargs):
-        self.args = options
-        self.loop = loop or asyncio.get_event_loop()
-        self.cfg = config_parser(**kwargs)
-
-    @staticmethod
-    def config(section):
-        return {}
-
-    def read_config(self, fObj):
-        self.loop.run_until_complete(
-            asyncio.wait_for(
-                self.loop.run_in_executor(
-                    None, self.cfg.read_file, fObj
-                ),
-                timeout=self.CONFIG_TIMEOUT_SEC
-            )
-        )
-
-class Processor(Proactor):
-    pass
-
-class Initiator(Proactor):
-
-    Worker = namedtuple(
-        "Worker",
-        ["guid", "port", "session", "module", "process"]
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.queue = asyncio.Queue(loop=self.loop)
-        self.tasks = OrderedDict([])
-        self.loop.create_task(self.task_runner())
-
-    async def task_runner(self):
-        print("Running")
-        try:
-            while True:
-                guid = await self.queue.get()
-                print(guid)
-                task = self.tasks.get(guid)
-                print(task)
-                if task:
-                    rv = await task
-                    print(rv)
-        except asyncio.CancelledError:
-            pass
-
-    async def worker(self, guid):
-        log = logging.getLogger("")
-        port = self.cfg.getint("default", "port", fallback=8081)
-        args = [
-            sys.executable,
-            "-m", "turberfield.ipc.demo.initiator",
-            "--uuid", guid,
-            "--port", str(port),
-            #"--log", os.path.join(root, session, progress.slot, "run.log")
-        ]
-        proc = await asyncio.create_subprocess_exec(
-          *args, stdin=subprocess.PIPE, loop=self.loop
-        )
-        self.cfg.read_string(textwrap.dedent(
-        """
-        [{guid}]
-        a = 2
-        """
-        ).format(guid=guid))
-
-        data = io.StringIO()
-        self.cfg.write(data)
-        proc.stdin.write(data.getvalue().encode("utf-8"))
-        await proc.stdin.drain()
-        proc.stdin.close()
-
-        task = asyncio.wait_for(
-            proc.wait(),
-            timeout=self.CONFIG_TIMEOUT_SEC + 2
-        )
-        try:
-            await task
-        except asyncio.TimeoutError:
-            return self.Worker(guid, port, None, None, proc)
-        else:
-            return self.Worker(guid, None, None, None, proc)
-
-    async def launch(self, guid=None):
-        guid = guid or uuid.uuid4().hex
-        self.tasks[guid] = self.worker(guid)
-        await self.queue.put(guid)
-        return guid
-
 class Service:
 
     def __init__(self, *args, **kwargs):
-        self.initiator = next(
+        self.proactor = next(
             (i for i in args if isinstance(i, Initiator)),
             None
         )
@@ -168,13 +68,13 @@ class Service:
         app.router.add_post("/create", self.create)
 
     async def config(self, request):
-        cfg = self.initiator.cfg
+        cfg = self.proactor.cfg
         rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
         return aiohttp.web.json_response(rv)
 
     async def create(self, request):
         data = await request.post()
-        guid = await self.initiator.launch()
+        guid = await self.proactor.launch(turberfield.ipc.demo.initiator)
         root = ""  # Absolute host path
         rv = aiohttp.web.HTTPCreated(
             headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
@@ -183,7 +83,7 @@ class Service:
 
     async def task(self, request):
         task = request.match_info.get("task")
-        rv = self.initiator.tasks.get(task, self.initiator.tasks)
+        rv = self.proactor.tasks.get(task, self.proactor.tasks)
         return aiohttp.web.json_response(str(rv))
 
 def main(args):
@@ -216,7 +116,9 @@ def main(args):
         service = Service(initiator)
         service.setup_routes(app)
         handler = app.make_handler()
-        f = loop.create_server(handler, "0.0.0.0", args.port)
+        addr = initiator.cfg.get(args.uuid, "listen_addr", fallback="0.0.0.0")
+        port = initiator.cfg.getint(args.uuid, "listen_port", fallback=args.port)
+        f = loop.create_server(handler, addr, port)
         srv = loop.run_until_complete(f)
         log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
         try:

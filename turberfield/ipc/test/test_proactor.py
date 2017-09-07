@@ -16,11 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
-import io
-import itertools
-import textwrap
+import datetime
 import unittest
-
 
 def create_token(key, session=None):
      now = datetime.datetime.utcnow()
