@@ -52,6 +52,15 @@ class Initiator(Proactor):
         self.loop.create_task(self.task_runner())
         self.log = logging.getLogger("turberfield.ipc.proactor.initiator")
 
+    @staticmethod
+    def next_port(cfg, guid):
+        pool = range(
+            cfg.getint(guid, "child_port_min"),
+            cfg.getint(guid, "child_port_max") + 1
+        )
+        taken = {cfg.getint(s, "listen_port", fallback=None) for s in cfg.sections()}
+        return next(iter(sorted(set(pool).difference(taken))), None)
+
     async def task_runner(self):
         self.log.info("Running tasks")
         try:
@@ -59,25 +68,27 @@ class Initiator(Proactor):
                 guid = await self.queue.get()
                 task = self.tasks.get(guid)
                 if task:
-                    rv = await task
-                    self.log.info(rv)
+                    self.tasks[guid] = await task
+                    self.log.info(self.tasks[guid])
         except asyncio.CancelledError:
             pass
 
     async def worker(self, module, guid, interpreter=sys.executable):
-        port = self.cfg.getint("default", "port", fallback=8081)
+        port = self.next_port(self.cfg, self.args.guid)
         args = [
             interpreter,
             "-m", module.__name__,
             "--guid", guid,
             "--port", str(port),
-            #"--log", os.path.join(root, session, progress.slot, "run.log")
         ]
         proc = await asyncio.create_subprocess_exec(
           *args, stdin=subprocess.PIPE, loop=self.loop
         )
         section = "\n".join(itertools.chain(
             clone_config_section(self.cfg, module.__name__, guid, listen_port=port),
+            reference_config_section(
+                self.cfg, self.args.guid, parent_addr="listen_addr", parent_port="listen_port"
+            ),
         ))
         self.cfg.read_string(section)
 
@@ -94,9 +105,9 @@ class Initiator(Proactor):
         try:
             await task
         except asyncio.TimeoutError:
-            return self.Worker(guid, port, None, None, proc)
+            return self.Worker(guid, port, None, module, proc)
         else:
-            return self.Worker(guid, None, None, None, proc)
+            return self.Worker(guid, None, None, module, proc)
 
     async def launch(self, module, guid=None):
         guid = guid or uuid.uuid4().hex
