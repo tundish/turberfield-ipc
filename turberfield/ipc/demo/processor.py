@@ -28,8 +28,23 @@ from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
 from turberfield.ipc.cli import add_common_options
 from turberfield.ipc.cli import add_proactor_options
-from turberfield.ipc.proactor import Processor
+from turberfield.ipc.proactor import Proactor
 from turberfield.utils.misc import log_setup
+
+
+class Processor(Proactor):
+
+    async def config_refresher(self):
+        try:
+            while True:
+                guid = await self.queue.get()
+                task = self.tasks.get(guid)
+                if task:
+                    self.tasks[guid] = await task
+                    self.log.info(self.tasks[guid])
+                    # TODO: remove section from cfg if no port allocated
+        except asyncio.CancelledError:
+            pass
 
 
 class Service:
@@ -39,18 +54,11 @@ class Service:
 
     def setup_routes(self, app):
         app.router.add_get("/config", self.config)
-        app.router.add_get("/task", self.task)
-        app.router.add_get("/task/{task}", self.task)
 
     async def config(self, request):
         cfg = self.proactor.cfg
         rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
         return aiohttp.web.json_response(rv)
-
-    async def task(self, request):
-        task = request.match_info.get("task")
-        rv = self.proactor.tasks.get(task, self.proactor.tasks)
-        return aiohttp.web.json_response(str(rv))
 
 
 def main(args):

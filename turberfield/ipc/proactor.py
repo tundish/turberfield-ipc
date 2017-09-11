@@ -41,9 +41,6 @@ class Proactor:
         self.cfg[guid]["listen_port"] = str(port)
         return addr, port
 
-class Processor(Proactor):
-    pass
-
 class Initiator(Proactor):
 
     Worker = namedtuple(

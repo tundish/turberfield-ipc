@@ -51,7 +51,15 @@ class Service(turberfield.ipc.demo.processor.Service):
 
     def setup_routes(self, app):
         super().setup_routes(app)
+        app.router.add_get("/config/{guid}", self.config)
         app.router.add_post("/create", self.create)
+        app.router.add_get("/task", self.task)
+
+    async def config(self, request):
+        guid = request.match_info.get("guid")
+        cfg = self.proactor.cfg
+        rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
+        return aiohttp.web.json_response(rv)
 
     async def create(self, request):
         data = await request.post()
@@ -65,6 +73,11 @@ class Service(turberfield.ipc.demo.processor.Service):
                 headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
             )
         return rv
+
+    async def task(self, request):
+        task = request.match_info.get("task")
+        rv = self.proactor.tasks.get(task, self.proactor.tasks)
+        return aiohttp.web.json_response(str(rv))
 
 
 class LogPath(PathLike):
