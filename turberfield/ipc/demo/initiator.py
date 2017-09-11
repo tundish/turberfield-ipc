@@ -34,7 +34,7 @@ from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
 from turberfield.ipc.cli import add_common_options
 from turberfield.ipc.cli import add_proactor_options
-import turberfield.ipc.demo.initiator
+import turberfield.ipc.demo.processor
 from turberfield.ipc.proactor import Initiator
 from turberfield.utils.misc import config_parser
 from turberfield.utils.misc import log_setup
@@ -47,44 +47,30 @@ __doc__ = """
 
 """
 
+class Service(turberfield.ipc.demo.processor.Service):
+
+    def setup_routes(self, app):
+        super().setup_routes(app)
+        app.router.add_post("/create", self.create)
+
+    async def create(self, request):
+        data = await request.post()
+        try:
+            guid = await self.proactor.launch(turberfield.ipc.demo.processor)
+        except (AttributeError, NotImplementedError):
+            rv = aiohttp.web.HTTPNotImplemented()
+        else:
+            root = ""  # Absolute host path
+            rv = aiohttp.web.HTTPCreated(
+                headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
+            )
+        return rv
+
 
 class LogPath(PathLike):
 
     def __fspath__(self):
         return "."
-
-class Service:
-
-    def __init__(self, *args, **kwargs):
-        self.proactor = next(
-            (i for i in args if isinstance(i, Initiator)),
-            None
-        )
-
-    def setup_routes(self, app):
-        app.router.add_get("/config", self.config)
-        app.router.add_get("/task", self.task)
-        app.router.add_get("/task/{task}", self.task)
-        app.router.add_post("/create", self.create)
-
-    async def config(self, request):
-        cfg = self.proactor.cfg
-        rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
-        return aiohttp.web.json_response(rv)
-
-    async def create(self, request):
-        data = await request.post()
-        guid = await self.proactor.launch(turberfield.ipc.demo.initiator)
-        root = ""  # Absolute host path
-        rv = aiohttp.web.HTTPCreated(
-            headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
-        )
-        return rv
-
-    async def task(self, request):
-        task = request.match_info.get("task")
-        rv = self.proactor.tasks.get(task, self.proactor.tasks)
-        return aiohttp.web.json_response(str(rv))
 
 def main(args):
     rv = 0
@@ -100,9 +86,8 @@ def main(args):
         )
     )
     home.mkdir(parents=True, exist_ok=True)
-    initiator = Initiator(args, loop=loop)
+    initiator = Initiator(args, loop=loop, home=str(home))
 
-    # TODO: Put in Processor as class method
     log.info("Read config...")
     try:
         initiator.read_config(args.config)
@@ -112,14 +97,12 @@ def main(args):
         loop.close()
         os._exit(1)
     else:
+        addr, port = initiator.register_connection(args.guid, args.port)
+
         app = aiohttp.web.Application()
         service = Service(initiator)
         service.setup_routes(app)
         handler = app.make_handler()
-
-        addr = initiator.cfg.get(args.guid, "listen_addr", fallback="0.0.0.0")
-        port = args.port or initiator.cfg.getint(args.guid, "listen_port")
-        initiator.cfg[args.guid]["listen_port"] = str(port)
 
         f = loop.create_server(handler, addr, port)
         srv = loop.run_until_complete(f)

@@ -35,6 +35,12 @@ class Proactor:
             )
         )
 
+    def register_connection(self, guid, port=None):
+        addr = self.cfg.get(guid, "listen_addr", fallback="0.0.0.0")
+        port = port or self.cfg.getint(guid, "listen_port")
+        self.cfg[guid]["listen_port"] = str(port)
+        return addr, port
+
 class Processor(Proactor):
     pass
 
@@ -70,11 +76,20 @@ class Initiator(Proactor):
                 if task:
                     self.tasks[guid] = await task
                     self.log.info(self.tasks[guid])
+                    # TODO: remove section from cfg if no port allocated
         except asyncio.CancelledError:
             pass
 
     async def worker(self, module, guid, interpreter=sys.executable):
         port = self.next_port(self.cfg, self.args.guid)
+        section = "\n".join(itertools.chain(
+            clone_config_section(self.cfg, module.__name__, guid, listen_port=port),
+            reference_config_section(
+                self.cfg, self.args.guid, parent_addr="listen_addr", parent_port="listen_port"
+            ),
+        ))
+        self.cfg.read_string(section)
+
         args = [
             interpreter,
             "-m", module.__name__,
@@ -84,13 +99,6 @@ class Initiator(Proactor):
         proc = await asyncio.create_subprocess_exec(
           *args, stdin=subprocess.PIPE, loop=self.loop
         )
-        section = "\n".join(itertools.chain(
-            clone_config_section(self.cfg, module.__name__, guid, listen_port=port),
-            reference_config_section(
-                self.cfg, self.args.guid, parent_addr="listen_addr", parent_port="listen_port"
-            ),
-        ))
-        self.cfg.read_string(section)
 
         data = io.StringIO()
         self.cfg.write(data)
