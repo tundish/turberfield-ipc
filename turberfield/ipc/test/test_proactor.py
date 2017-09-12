@@ -16,22 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
 
-import datetime
 import unittest
-
-import jwt
-
-def create_token(key, session=None):
-     now = datetime.datetime.utcnow()
-     return jwt.encode(
-         {
-             "exp": now + datetime.timedelta(days=30),
-             "iat": now,
-             "session": session
-         },
-         key=key,
-         algorithm="HS256"
-     )
 
 class TokenTests(unittest.TestCase):
 

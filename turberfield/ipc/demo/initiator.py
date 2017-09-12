@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+import datetime
 import logging
 import os.path
 try:
@@ -25,10 +26,17 @@ try:
 except ImportError:
     PathLike = object
 import pathlib
+try:
+    import secrets
+except ImportError:
+    secrets = None
 import sys
+import uuid
 
 import aiohttp.web
 from multidict import MultiDict
+import jwt
+
 
 from turberfield.ipc import __version__
 from turberfield.ipc.cli import add_async_options
@@ -47,6 +55,40 @@ __doc__ = """
 
 """
 
+class Authenticator(Initiator):
+
+    @staticmethod
+    def create_token(key, session=None):
+         now = datetime.datetime.utcnow()
+         return jwt.encode(
+             {
+                 "exp": now + datetime.timedelta(days=30),
+                 "iat": now,
+                 "session": session
+             },
+             key=key,
+             algorithm="HS256"
+         )
+
+    @staticmethod
+    def check_token(text, key, session=None):
+        try:
+            return jwt.decode(text, key, algorithms=["HS256"])
+        except jwt.exceptions.DecodeError:
+            return None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.secret = secrets.token_hex() if secrets else uuid.uuid4().hex
+
+    async def launch(self, module, guid=None):
+        guid = guid or uuid.uuid4().hex
+        self.tasks[guid] = self.worker(
+            module, guid, token=self.create_token(self.secret).decode("utf-8")
+        )
+        await self.queue.put(guid)
+        return guid
+
 class Service(turberfield.ipc.demo.processor.Service):
 
     def setup_routes(self, app):
@@ -56,9 +98,17 @@ class Service(turberfield.ipc.demo.processor.Service):
         app.router.add_get("/task", self.task)
 
     async def config(self, request):
+        token = None
+        try:
+            bits = request.headers.get("AUTHORIZATION").split()
+            token = bits[0] == "Bearer" and bits[1]
+            payload = self.proactor.check_token(token, self.proactor.secret)
+        except:
+            return aiohttp.web.HTTPForbidden()
+
+        print(payload)
         guid = request.match_info.get("guid")
-        cfg = self.proactor.cfg
-        rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
+        rv = dict(self.proactor.cfg.items(guid))
         return aiohttp.web.json_response(rv)
 
     async def create(self, request):
@@ -99,7 +149,7 @@ def main(args):
         )
     )
     home.mkdir(parents=True, exist_ok=True)
-    initiator = Initiator(args, loop=loop, home=str(home))
+    initiator = Authenticator(args, loop=loop, home=str(home))
 
     log.info("Read config...")
     try:

@@ -54,14 +54,17 @@ class Initiator(Proactor):
         self.tasks = OrderedDict([])
         self.loop.create_task(self.task_runner())
         self.log = logging.getLogger("turberfield.ipc.proactor.initiator")
+        self.busy = set([])
 
     @staticmethod
-    def next_port(cfg, guid):
+    def next_port(cfg, guid, busy=set([])):
         pool = range(
             cfg.getint(guid, "child_port_min"),
             cfg.getint(guid, "child_port_max") + 1
         )
-        taken = {cfg.getint(s, "listen_port", fallback=None) for s in cfg.sections()}
+        taken = busy.union(
+            {cfg.getint(s, "listen_port", fallback=None) for s in cfg.sections()}
+        )
         return next(iter(sorted(set(pool).difference(taken))), None)
 
     async def task_runner(self):
@@ -71,16 +74,21 @@ class Initiator(Proactor):
                 guid = await self.queue.get()
                 task = self.tasks.get(guid)
                 if task:
-                    self.tasks[guid] = await task
-                    self.log.info(self.tasks[guid])
-                    # TODO: remove section from cfg if no port allocated
+                    worker = await task
+                    self.log.debug(worker)
+                    if not worker.port:
+                        self.cfg.remove_section(guid)
+                        del self.tasks[guid]
+                        await self.launch(worker.module, worker.guid)
+                    else:
+                        self.tasks[guid] = worker
         except asyncio.CancelledError:
             pass
 
-    async def worker(self, module, guid, interpreter=sys.executable):
-        port = self.next_port(self.cfg, self.args.guid)
+    async def worker(self, module, guid, interpreter=sys.executable, **kwargs):
+        port = self.next_port(self.cfg, self.args.guid, self.busy)
         section = "\n".join(itertools.chain(
-            clone_config_section(self.cfg, module.__name__, guid, listen_port=port),
+            clone_config_section(self.cfg, module.__name__, guid, listen_port=port, **kwargs),
             reference_config_section(
                 self.cfg, self.args.guid, parent_addr="listen_addr", parent_port="listen_port"
             ),
@@ -112,6 +120,7 @@ class Initiator(Proactor):
         except asyncio.TimeoutError:
             return self.Worker(guid, port, None, module, proc)
         else:
+            self.busy.add(port)
             return self.Worker(guid, None, None, module, proc)
 
     async def launch(self, module, guid=None):

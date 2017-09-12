@@ -18,6 +18,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -33,24 +34,15 @@ from turberfield.utils.misc import log_setup
 
 
 class Processor(Proactor):
-
-    async def config_refresher(self):
-        try:
-            while True:
-                guid = await self.queue.get()
-                task = self.tasks.get(guid)
-                if task:
-                    self.tasks[guid] = await task
-                    self.log.info(self.tasks[guid])
-                    # TODO: remove section from cfg if no port allocated
-        except asyncio.CancelledError:
-            pass
-
+    pass
 
 class Service:
 
-    def __init__(self, proactor, **kwargs):
+    def __init__(self, proactor, loop=None, **kwargs):
         self.proactor = proactor
+        self.loop = loop or asyncio.get_event_loop()
+        self.loop.create_task(self.config_refresher(30))
+        self.log = logging.getLogger("turberfield.ipc.demo.processor.service")
 
     def setup_routes(self, app):
         app.router.add_get("/config", self.config)
@@ -59,6 +51,24 @@ class Service:
         cfg = self.proactor.cfg
         rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
         return aiohttp.web.json_response(rv)
+
+    async def config_refresher(self, wait=300):
+        section = self.proactor.cfg[self.proactor.args.guid]
+        async with aiohttp.ClientSession() as session:
+            while "parent_addr" in section:
+                url = "http://{0}:{1}/config/{2}".format(
+                    section["parent_addr"], section["parent_port"], self.proactor.args.guid
+                )
+                async with session.get(
+                    url,
+                    headers={"authorization": "Bearer {0}".format(section["token"])}
+                ) as resp:
+                    if resp.status == 200:
+                        section = json.loads(await resp.text())
+                        print(section)
+                    else:
+                        self.log.warning(url)
+                await asyncio.sleep(wait)
 
 
 def main(args):
@@ -86,8 +96,13 @@ def main(args):
         handler = app.make_handler()
 
         f = loop.create_server(handler, addr, port)
-        srv = loop.run_until_complete(f)
-        log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
+        try:
+            srv = loop.run_until_complete(f)
+        except OSError:
+            log.warning("Bind failed: port {0} may be in use.".format(port))
+            return 1
+        else:
+            log.info("Serving on {0}:{1}".format(*srv.sockets[0].getsockname()))
         try:
             loop.run_forever()
         except KeyboardInterrupt:
