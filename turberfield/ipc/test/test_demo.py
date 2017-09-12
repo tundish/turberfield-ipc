@@ -18,7 +18,10 @@
 
 import unittest
 
+from turberfield.ipc.demo.initiator import Authenticator
+
 class TokenTests(unittest.TestCase):
 
     def test_create(self):
-        self.fail(create_token("testsecret"))
+        token = Authenticator.create_token("testsecret")
+        self.assertTrue(token)
