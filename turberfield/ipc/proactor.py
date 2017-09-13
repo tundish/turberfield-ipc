@@ -1,3 +1,21 @@
+#!/usr/bin/env python
+# encoding: UTF-8
+
+# This file is part of turberfield.
+#
+# Turberfield is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Turberfield is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with turberfield.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 from collections import namedtuple
 from collections import OrderedDict
@@ -24,6 +42,7 @@ class Proactor:
         self.args = options
         self.loop = loop or asyncio.get_event_loop()
         self.cfg = config_parser(**kwargs)
+        self.tasks = []
 
     def read_config(self, fObj):
         self.loop.run_until_complete(
@@ -51,8 +70,8 @@ class Initiator(Proactor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue = asyncio.Queue(loop=self.loop)
-        self.tasks = OrderedDict([])
-        self.loop.create_task(self.task_runner())
+        self.jobs = OrderedDict([])
+        self.tasks.append(self.loop.create_task(self.job_runner()))
         self.log = logging.getLogger("turberfield.ipc.proactor.initiator")
         self.busy = set([])
 
@@ -67,21 +86,21 @@ class Initiator(Proactor):
         )
         return next(iter(sorted(set(pool).difference(taken))), None)
 
-    async def task_runner(self):
-        self.log.info("Running tasks")
+    async def job_runner(self):
+        self.log.info("Running jobs")
         try:
             while True:
                 guid = await self.queue.get()
-                task = self.tasks.get(guid)
-                if task:
-                    worker = await task
+                job = self.jobs.get(guid)
+                if job:
+                    worker = await job
                     self.log.debug(worker)
                     if not worker.port:
                         self.cfg.remove_section(guid)
-                        del self.tasks[guid]
+                        del self.jobs[guid]
                         await self.launch(worker.module, worker.guid)
                     else:
-                        self.tasks[guid] = worker
+                        self.jobs[guid] = worker
         except asyncio.CancelledError:
             pass
 
@@ -111,12 +130,12 @@ class Initiator(Proactor):
         await proc.stdin.drain()
         proc.stdin.close()
 
-        task = asyncio.wait_for(
+        job = asyncio.wait_for(
             proc.wait(),
             timeout=self.CONFIG_TIMEOUT_SEC + 2
         )
         try:
-            await task
+            await job
         except asyncio.TimeoutError:
             return self.Worker(guid, port, None, module, proc)
         else:
@@ -125,6 +144,6 @@ class Initiator(Proactor):
 
     async def launch(self, module, guid=None):
         guid = guid or uuid.uuid4().hex
-        self.tasks[guid] = self.worker(module, guid)
+        self.jobs[guid] = self.worker(module, guid)
         await self.queue.put(guid)
         return guid

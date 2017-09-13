@@ -41,15 +41,16 @@ class Service:
     def __init__(self, proactor, loop=None, **kwargs):
         self.proactor = proactor
         self.loop = loop or asyncio.get_event_loop()
-        self.loop.create_task(self.config_refresher(30))
+        self.proactor.tasks.append(self.loop.create_task(self.config_refresher(30)))
         self.log = logging.getLogger("turberfield.ipc.demo.processor.service")
 
     def setup_routes(self, app):
         app.router.add_get("/config", self.config)
 
     async def config(self, request):
-        cfg = self.proactor.cfg
-        rv = {s: dict(cfg.items(s)) for s in cfg.sections()}
+        guid = self.proactor.args.guid
+        rv = dict(self.proactor.cfg.items(guid))
+        del rv["token"]
         return aiohttp.web.json_response(rv)
 
     async def config_refresher(self, wait=300):
@@ -108,6 +109,8 @@ def main(args):
         except KeyboardInterrupt:
             pass
         finally:
+            for t in processor.tasks:
+                t.cancel()
             srv.close()
             loop.run_until_complete(srv.wait_closed())
             loop.run_until_complete(app.shutdown())

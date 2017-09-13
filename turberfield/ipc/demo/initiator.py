@@ -74,7 +74,13 @@ class Authenticator(Initiator):
     def check_token(text, key, session=None):
         try:
             return jwt.decode(text, key, algorithms=["HS256"])
-        except jwt.exceptions.DecodeError:
+        except (
+            jwt.exceptions.DecodeError,
+            jwt.exceptions.ExpiredSignatureError,
+            jwt.exceptions.InvalidAudienceError,
+            jwt.exceptions.InvalidIssuedAtError,
+            jwt.exceptions.InvalidIssuerError,
+        ):
             return None
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +89,7 @@ class Authenticator(Initiator):
 
     async def launch(self, module, guid=None):
         guid = guid or uuid.uuid4().hex
-        self.tasks[guid] = self.worker(
+        self.jobs[guid] = self.worker(
             module, guid, token=self.create_token(self.secret).decode("utf-8")
         )
         await self.queue.put(guid)
@@ -95,38 +101,41 @@ class Service(turberfield.ipc.demo.processor.Service):
         super().setup_routes(app)
         app.router.add_get("/config/{guid}", self.config)
         app.router.add_post("/create", self.create)
-        app.router.add_get("/task", self.task)
+        app.router.add_get("/job", self.job)
 
     async def config(self, request):
-        token = None
         try:
             bits = request.headers.get("AUTHORIZATION").split()
             token = bits[0] == "Bearer" and bits[1]
             payload = self.proactor.check_token(token, self.proactor.secret)
+            session = payload["session"]
         except:
             return aiohttp.web.HTTPForbidden()
 
-        print(payload)
+        self.log.debug(payload)
         guid = request.match_info.get("guid")
         rv = dict(self.proactor.cfg.items(guid))
         return aiohttp.web.json_response(rv)
 
     async def create(self, request):
         data = await request.post()
+        section = self.proactor.cfg[self.proactor.args.guid]
         try:
             guid = await self.proactor.launch(turberfield.ipc.demo.processor)
         except (AttributeError, NotImplementedError):
             rv = aiohttp.web.HTTPNotImplemented()
         else:
-            root = ""  # Absolute host path
+            root = "{0}://{1}:{2}".format(
+                section["host_scheme"], section["host_addr"], section["host_port"]
+            )
             rv = aiohttp.web.HTTPCreated(
-                headers=MultiDict({"Refresh": "0;url={0}/task".format(root)})
+                headers=MultiDict({"Refresh": "0;url={0}/job".format(root)})
             )
         return rv
 
-    async def task(self, request):
-        task = request.match_info.get("task")
-        rv = self.proactor.tasks.get(task, self.proactor.tasks)
+    async def job(self, request):
+        job = request.match_info.get("job")
+        rv = self.proactor.jobs.get(job, self.proactor.jobs)
         return aiohttp.web.json_response(str(rv))
 
 
@@ -175,6 +184,8 @@ def main(args):
         except KeyboardInterrupt:
             pass
         finally:
+            for t in initiator.tasks:
+                t.cancel()
             srv.close()
             loop.run_until_complete(srv.wait_closed())
             loop.run_until_complete(app.shutdown())

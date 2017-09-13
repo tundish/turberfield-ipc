@@ -29,6 +29,8 @@ Turberfield Inter-Process Communication library
    message
    node
    node_example
+   proactor
+   proactor_example
 
 * :ref:`genindex`
 
