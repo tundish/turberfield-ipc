@@ -1,8 +1,8 @@
 ..  Titling
     ##++::==~~--''``
 
-Nodes
-=====
+DIF Nodes
+=========
 
 Turberfield IPC can build for you a network node object, which takes your parcelled
 messages and delivers them to others listening via the distributed IPC framework

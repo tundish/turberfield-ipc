@@ -19,14 +19,17 @@ Turberfield Inter-Process Communication library
 :Copyright: 2016 D Haynes
 :Licence: `GNU General Public License`_
 
-|
+.. caution::
+
+    Much of this package is experimental. If you are looking for production-ready
+    code, use only the :ref:`proactor` module.
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    netstrings
    message
+   protocol
    node
    node_example
    proactor

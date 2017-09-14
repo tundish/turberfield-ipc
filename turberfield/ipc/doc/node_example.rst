@@ -1,8 +1,8 @@
 ..  Titling
     ##++::==~~--''``
 
-Example
-=======
+DIF Example
+===========
 
 A common demonstration of a networked application is `echo server/ echo
 client`. The action of looping back the message is usually hardcoded in the

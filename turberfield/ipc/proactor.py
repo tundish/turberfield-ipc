@@ -34,7 +34,18 @@ from turberfield.utils.misc import clone_config_section
 from turberfield.utils.misc import reference_config_section
 
 
+"""
+In this arrangement, Initiator_
+
+"""
+
 class Proactor:
+    """
+    This class provides the basic behaviour required for a module which
+    performs a job of work.
+
+    """
+
 
     CONFIG_TIMEOUT_SEC = 3
 
@@ -44,13 +55,18 @@ class Proactor:
         self.cfg = config_parser(**kwargs)
         self.tasks = []
 
-    def read_config(self, fObj):
+    def read_config(self, fObj, timeout=CONFIG_TIMEOUT_SEC):
+        """Read the configuration file from standard input.
+
+        This function will raise `asyncio.TimeoutError` if the configuration
+        is not seen.
+        """
         self.loop.run_until_complete(
             asyncio.wait_for(
                 self.loop.run_in_executor(
                     None, self.cfg.read_file, fObj
                 ),
-                timeout=self.CONFIG_TIMEOUT_SEC
+                timeout=timeout
             )
         )
 
@@ -61,6 +77,12 @@ class Proactor:
         return addr, port
 
 class Initiator(Proactor):
+
+    """
+    The role of an Initiator is to launch jobs for computation as worker
+    processes.
+
+    """
 
     Worker = namedtuple(
         "Worker",
@@ -77,6 +99,10 @@ class Initiator(Proactor):
 
     @staticmethod
     def next_port(cfg, guid, busy=set([])):
+        """Calculate a value for the next available port on this host.
+
+        :rtype: integer
+        """
         pool = range(
             cfg.getint(guid, "child_port_min"),
             cfg.getint(guid, "child_port_max") + 1
@@ -143,6 +169,22 @@ class Initiator(Proactor):
             return self.Worker(guid, None, None, module, proc)
 
     async def launch(self, module, guid=None):
+        """Schedule a job to be spawned in a worker process.
+
+        This is a *coroutine*.
+
+        :param module: A reference to a Python executable module.
+            The module will be passed the following command line options:
+
+            --guid
+                The guid of the job.
+            --port
+                A TCP port for the job to bind to.
+
+            The module must read its configuration from the standard input stream.
+
+        :returns: a guid to identify the new job.
+        """
         guid = guid or uuid.uuid4().hex
         self.jobs[guid] = self.worker(module, guid)
         await self.queue.put(guid)
