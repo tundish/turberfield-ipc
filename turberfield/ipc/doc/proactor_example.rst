@@ -31,12 +31,12 @@ Install `turberfield-ipc` into a Python virtual environment at `~/py3.5`.
 
 Open up a console and start the `initiator` process::
 
-    ~/py3.5/bin/python -m turberfield.ipc.demo.initiator \\
-    --guid=8d740c16d9b8419aa7417f7da6deb039 --port=8080 \\
+    ~/py3.5/bin/python -m turberfield.ipc.demo.initiator \
+    --guid=8d740c16d9b8419aa7417f7da6deb039 \
     --config=turberfield/ipc/demo/proactor.cfg
 
-This command will run an initiator process, feed to it the configuration file and tell it
-to get its settings from the specific section named by the guid::
+This command will run an initiator process, feed into it the configuration file
+and tell it to get its settings from the specific section named by the guid::
 
     2017-09-14 18:04:16,425 INFO   |1034|turberfield|Place defaults
     2017-09-14 18:04:16,426 INFO   |1034|turberfield|Read config...
@@ -60,13 +60,13 @@ You'll see a new processor start up and begin logging messages::
 Reconfiguration of a live processor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The initiator endpoint at ``localhost:8080/config`` allows a processor to request its
-configuration. The processor must use its *guid* as part of the url, and authenticate
+The initiator endpoint at ``localhost:8080/config/`` allows a processor to request its
+configuration. The processor must use its *guid* as the last part of the url, and authenticate
 itself with a secret token that it gets from its most recent configuration.
 
 Every 30 seconds or so you will see the processor request a fresh configuration from the
 initiator. This demo simply logs that data. A more sophisticated application would update
-its configuration. That configuration could include a refresh of the authentication token.
+its configuration. That configuration might well include a refresh of the authentication token.
 
 Message passing
 ~~~~~~~~~~~~~~~
@@ -77,5 +77,5 @@ they use in their requests.
 Alternatively, processors could respond to API requests whether from the initiator
 or from each other. All sorts of messaging sequences are now possible.
 
-This flexible system can form the basis of a distributed, asynchronous computational
-service.
+This flexible system can form the basis of an asynchronous distributed computational
+service controlled by the initiator.

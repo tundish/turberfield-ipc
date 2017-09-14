@@ -40,26 +40,34 @@ In this arrangement, Initiator_
 """
 
 class Proactor:
-    """
-    This class provides the basic behaviour required for a module which
-    performs a job of work.
-
-    """
-
 
     CONFIG_TIMEOUT_SEC = 3
 
     def __init__(self, options, loop=None, **kwargs):
+        """
+        This class provides the basic behaviour required for a module which
+        performs a job of work.
+
+        :param options: An `argparse.Namespace` or other object giving dotted-name
+            attribute access to command line options.
+        :param loop: An event loop compatible with `asyncio.AbstractEventLoop`.
+
+        """
         self.args = options
         self.loop = loop or asyncio.get_event_loop()
         self.cfg = config_parser(**kwargs)
         self.tasks = []
 
     def read_config(self, fObj, timeout=CONFIG_TIMEOUT_SEC):
-        """Read the configuration file from standard input.
+        """Read this object's configuration file from a file stream (eg: standard input).
 
-        This function will raise `asyncio.TimeoutError` if the configuration
-        is not seen.
+        This method will raise `asyncio.TimeoutError` if the configuration
+        is not seen within the timeout interval.
+
+        It runs within this object's event loop. 
+
+        :param fObj: A file stream object.
+        :param timeout: A timeout interval in seconds.
         """
         self.loop.run_until_complete(
             asyncio.wait_for(
@@ -79,8 +87,9 @@ class Proactor:
 class Initiator(Proactor):
 
     """
-    The role of an Initiator is to launch jobs for computation as worker
-    processes.
+    The role of an Initiator is to launch executable modules as worker
+    processes, or `jobs`. It is a subclass of
+    :py:class:`Proactor <turberfield.ipc.proactor.Proactor>`.
 
     """
 
@@ -101,6 +110,10 @@ class Initiator(Proactor):
     def next_port(cfg, guid, busy=set([])):
         """Calculate a value for the next available port on this host.
 
+        :param cfg: A `configparser.ConfigParser` object.
+        :param guid: The global id for the Initiator which allocates ports.
+        :param busy: A set of integer values; these are port numbers
+            known to be busy.
         :rtype: integer
         """
         pool = range(
@@ -182,8 +195,9 @@ class Initiator(Proactor):
                 A TCP port for the job to bind to.
 
             The module must read its configuration from the standard input stream.
-
-        :returns: a guid to identify the new job.
+        :param guid: A unique id for the job. There is usually no need to
+            supply this parameter. It will be generated internally.
+        :returns: A guid to identify the new job.
         """
         guid = guid or uuid.uuid4().hex
         self.jobs[guid] = self.worker(module, guid)

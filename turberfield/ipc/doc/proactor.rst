@@ -19,7 +19,7 @@ Base class
 ~~~~~~~~~~
 
 .. autoclass:: turberfield.ipc.proactor.Proactor
-   :members:
+   :members: __init__, read_config
 
 Initiator
 ~~~~~~~~~
@@ -37,10 +37,10 @@ Data structures
         guid
             A unique id which identifies a section in the configuration file.
         port
-            The port the worker process is listening on.
+            The port (an integer) the worker process is listening on.
         session
             An optional value for the job which may be of use in web applications.
         module
-            The executable Python module used to launch the job.
+            A reference to he executable Python module used to launch the job.
         process
             A reference to the Python subprocess.
