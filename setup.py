@@ -64,11 +64,9 @@ setup(
         "turberfield-utils>=0.32.0",
     ],
     extras_require={
-        "proactor": [
-            "pyjwt>=1.5.2",
-        ],
         "demo": [
             "aiohttp>=2.2.0",
+            "pyjwt>=1.5.2",
         ],
         "docbuild": [
             "babel<=1.3,>2.0",

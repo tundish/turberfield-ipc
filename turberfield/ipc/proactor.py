@@ -34,11 +34,6 @@ from turberfield.utils.misc import clone_config_section
 from turberfield.utils.misc import reference_config_section
 
 
-"""
-In this arrangement, Initiator_
-
-"""
-
 class Proactor:
 
     CONFIG_TIMEOUT_SEC = 3
